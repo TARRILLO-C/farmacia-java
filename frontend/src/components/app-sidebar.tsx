@@ -93,16 +93,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border" {...props}>
       {/* 1. Header con branding SGF y Botón de Venta Rápida */}
-      <SidebarHeader className="border-b border-sidebar-border p-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
+      <SidebarHeader className="border-b border-sidebar-border p-3 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
+        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+          <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <SidebarMenuButton
               size="lg"
               asChild
-              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
+              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
             >
-              <Link href="/dashboard" className="flex items-center gap-3">
-                <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#319795] to-[#285e61] text-white shadow-md shrink-0">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center"
+              >
+                <div className="flex aspect-square size-9 group-data-[collapsible=icon]:size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#319795] to-[#285e61] text-white shadow-md shrink-0">
                   <Activity className="size-5 stroke-[2.5]" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
@@ -136,13 +139,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       {/* 2. Contenido de navegación estructurado con Shadcn */}
-      <SidebarContent className="px-2 py-3">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-1">
+      <SidebarContent className="px-2 py-3 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2 overflow-x-hidden">
+        <SidebarGroup className="group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center">
+          <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-1 group-data-[collapsible=icon]:hidden">
             Menú Principal
           </SidebarGroupLabel>
 
-          <SidebarGroupAction asChild title="Nueva Venta Rápida">
+          <SidebarGroupAction asChild title="Nueva Venta Rápida" className="group-data-[collapsible=icon]:hidden">
             <Link href="/dashboard/pos">
               <PlusCircle className="size-4" />
               <span className="sr-only">Nueva Venta Rápida</span>
@@ -150,7 +153,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupAction>
 
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
@@ -159,20 +162,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     : pathname.startsWith(item.href);
 
                 return (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem
+                    key={item.href}
+                    className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full"
+                  >
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={`gap-3 h-10 px-3 rounded-xl transition-all ${
+                      className={`gap-3 h-10 px-3 rounded-xl transition-all group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center ${
                         isActive
                           ? 'bg-[#319795] text-white shadow-sm hover:bg-[#287e7c] hover:text-white font-bold'
                           : 'text-slate-200 hover:bg-sidebar-accent hover:text-white font-medium'
                       }`}
                     >
-                      <Link href={item.href}>
-                        <Icon className={`size-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-300'}`} />
-                        <span className="text-sm truncate">{item.title}</span>
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center w-full h-full"
+                      >
+                        <Icon
+                          className={`size-4.5 shrink-0 ${
+                            isActive ? 'text-white' : 'text-slate-300'
+                          }`}
+                        />
+                        <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
+                          {item.title}
+                        </span>
                         {isActive && (
                           <ChevronRight className="size-4 ml-auto text-white/80 group-data-[collapsible=icon]:hidden" />
                         )}
@@ -180,7 +195,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </SidebarMenuButton>
 
                     {item.badge && (
-                      <SidebarMenuBadge className="bg-[#319795]/20 text-[#81e6d9] border border-[#319795]/40 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                      <SidebarMenuBadge className="bg-[#319795]/20 text-[#81e6d9] border border-[#319795]/40 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md group-data-[collapsible=icon]:hidden">
                         {item.badge}
                       </SidebarMenuBadge>
                     )}
@@ -193,17 +208,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       {/* 3. Footer con Turno / Usuario y Logout */}
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
+      <SidebarFooter className="p-3 border-t border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
+        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+          <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <SidebarMenuButton
               size="lg"
               tooltip="Turno Activo (Cerrar Sesión)"
               onClick={handleLogout}
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-rose-300 transition-colors rounded-xl"
+              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-rose-300 transition-colors rounded-xl group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
-                <div className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex aspect-square size-8 group-data-[collapsible=icon]:size-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                <div className="size-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
               <div className="grid flex-1 text-left text-xs leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-bold text-white">Turno Activo</span>
