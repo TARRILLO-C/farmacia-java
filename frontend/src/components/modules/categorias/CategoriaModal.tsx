@@ -1,18 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Tags, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Tags, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Categoria, CreateCategoriaDTO, UpdateCategoriaDTO } from '@/types';
 import { createCategoria, updateCategoria } from '@/services/categoriaService';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,121 +102,88 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
   const isEditing = Boolean(categoriaToEdit);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden" showCloseButton={false}>
-        {/* Cabecera estilizada shadcn con acento médico */}
-        <div className="flex items-center gap-3 px-6 py-4 bg-[#1a365d] text-white">
-          <div className="p-2 rounded-xl bg-[#319795] text-white shadow-xs">
-            <Tags className="w-5 h-5" />
+    <AppDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
+      description={
+        isEditing
+          ? `Modificando registro ID #${categoriaToEdit?.id}`
+          : 'Registrar nueva categoría para clasificación de fármacos'
+      }
+      icon={Tags}
+      onSubmit={handleSubmit}
+      submitText={isEditing ? 'Guardar Cambios' : 'Registrar Categoría'}
+      submitIcon={CheckCircle2}
+      isSubmitting={isSubmitting}
+      maxWidth="max-w-xl"
+    >
+      <div className="space-y-4">
+        {errors.general && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errors.general}</span>
           </div>
-          <div>
-            <DialogTitle className="text-white">
-              {isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
-            </DialogTitle>
-            <DialogDescription className="text-slate-300">
-              {isEditing
-                ? `Modificando registro ID #${categoriaToEdit?.id}`
-                : 'Registrar nueva categoría para clasificación de fármacos'}
-            </DialogDescription>
-          </div>
+        )}
+
+        {/* Campo: Nombre */}
+        <div className="space-y-1.5">
+          <Label htmlFor="nombre" className="text-xs font-semibold text-slate-700">
+            Nombre de la Categoría <span className="text-rose-500">*</span>
+          </Label>
+          <Input
+            id="nombre"
+            value={nombre}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              if (errors.nombre) setErrors((prev) => ({ ...prev, nombre: undefined }));
+            }}
+            placeholder="Ej: Antibióticos, Analgésicos, Suplementos..."
+            className={`h-9 text-xs rounded-xl ${errors.nombre ? 'border-rose-400 focus-visible:ring-rose-200' : ''}`}
+            autoFocus
+          />
+          {errors.nombre && (
+            <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{errors.nombre}</span>
+            </p>
+          )}
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {errors.general && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{errors.general}</span>
-            </div>
-          )}
+        {/* Campo: Descripción */}
+        <div className="space-y-1.5">
+          <Label htmlFor="descripcion" className="text-xs font-semibold text-slate-700">
+            Descripción <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+          </Label>
+          <Textarea
+            id="descripcion"
+            rows={3}
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Describe los medicamentos o productos que comprende esta categoría..."
+            className="text-xs rounded-xl"
+          />
+        </div>
 
-          {/* Campo: Nombre con Shadcn Input & Label */}
-          <div className="space-y-1.5">
-            <Label htmlFor="nombre">
-              Nombre de la Categoría <span className="text-rose-500">*</span>
-            </Label>
-            <Input
-              id="nombre"
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value);
-                if (errors.nombre) setErrors((prev) => ({ ...prev, nombre: undefined }));
-              }}
-              placeholder="Ej: Antibióticos, Analgésicos, Suplementos..."
-              className={errors.nombre ? 'border-rose-400 focus:ring-rose-200' : ''}
-              autoFocus
-            />
-            {errors.nombre && (
-              <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{errors.nombre}</span>
-              </p>
-            )}
+        {/* Campo: Estado Activo */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+          <div>
+            <span className="text-xs font-bold text-slate-800 block">
+              Estado Operativo
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {activo
+                ? 'La categoría estará disponible en catálogos y ventas'
+                : 'La categoría quedará inactiva y oculta'}
+            </span>
           </div>
 
-          {/* Campo: Descripción con Shadcn Textarea & Label */}
-          <div className="space-y-1.5">
-            <Label htmlFor="descripcion">
-              Descripción <span className="text-slate-400 font-normal lowercase">(opcional)</span>
-            </Label>
-            <Textarea
-              id="descripcion"
-              rows={3}
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Describe los medicamentos o productos que comprende esta categoría..."
-            />
-          </div>
-
-          {/* Campo: Estado Activo con Shadcn Switch */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-800 block">
-                Estado Operativo
-              </span>
-              <span className="text-xs text-slate-500">
-                {activo
-                  ? 'La categoría estará disponible en catálogos y ventas'
-                  : 'La categoría quedará inactiva y oculta'}
-              </span>
-            </div>
-
-            <Switch
-              checked={activo}
-              onCheckedChange={setActivo}
-            />
-          </div>
-
-          <DialogFooter className="gap-2 sm:space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-
-            <Button
-              type="submit"
-              variant="default"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#81e6d9]" />
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-[#81e6d9]" />
-                  <span>{isEditing ? 'Guardar Cambios' : 'Registrar Categoría'}</span>
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <Switch
+            checked={activo}
+            onCheckedChange={setActivo}
+          />
+        </div>
+      </div>
+    </AppDrawer>
   );
 };

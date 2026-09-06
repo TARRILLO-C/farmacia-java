@@ -16,14 +16,7 @@ import {
 } from 'lucide-react';
 import { Producto, CreateProductoDTO, UpdateProductoDTO, Categoria } from '@/types';
 import { createProducto, updateProducto, getCategoriasParaSelector } from '@/services/productoService';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -214,35 +207,28 @@ export const ProductoModal: React.FC<ProductoModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6">
-        <DialogHeader className="space-y-2 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 text-[#319795] border border-teal-100 shadow-xs">
-              <Pill className="w-5 h-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg font-bold text-[#1a365d]">
-                {productoToEdit ? 'Editar Producto Farmacéutico' : 'Nuevo Producto en Inventario'}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                {productoToEdit
-                  ? `Modificando los datos del producto código ${productoToEdit.codigo}`
-                  : 'Complete la ficha técnica, precios, lote y parámetros de inventario.'}
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        {/* Alerta de Error General */}
+    <AppDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={productoToEdit ? 'Editar Producto Farmacéutico' : 'Nuevo Producto en Inventario'}
+      description={
+        productoToEdit
+          ? `Modificando los datos del producto código ${productoToEdit.codigo}`
+          : 'Complete la ficha técnica, precios, lote y parámetros de inventario.'
+      }
+      icon={Pill}
+      onSubmit={handleSubmit}
+      submitText={productoToEdit ? 'Actualizar Producto' : 'Guardar Producto'}
+      isSubmitting={isSubmitting}
+      maxWidth="max-w-2xl"
+    >
+      <div className="space-y-4">
         {errors.general && (
-          <div className="flex items-start gap-3 p-3.5 mt-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <span>{errors.general}</span>
           </div>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Fila 1: Código de Barras y Categoría */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -468,35 +454,7 @@ export const ProductoModal: React.FC<ProductoModalProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-4 border-t border-slate-100">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="h-9 text-xs rounded-xl border-slate-200"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-9 text-xs rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white font-semibold shadow-xs"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                  Guardando...
-                </>
-              ) : productoToEdit ? (
-                'Actualizar Producto'
-              ) : (
-                'Guardar Producto'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </AppDrawer>
   );
 };

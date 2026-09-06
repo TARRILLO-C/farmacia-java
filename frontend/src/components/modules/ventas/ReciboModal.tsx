@@ -20,14 +20,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { Venta } from '@/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -79,23 +72,35 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
     : new Date().toLocaleString('es-PE');
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl p-6">
-        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-teal-50 text-[#319795] border border-teal-100">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-base font-bold text-[#1a365d]">
-                Comprobante de Venta Electrónico
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Detalle tributario y auditoría de la transacción
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+    <AppDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Comprobante de Venta Electrónico"
+      description="Detalle tributario y auditoría de la transacción emitida"
+      icon={Receipt}
+      maxWidth="max-w-xl"
+      cancelText="Cerrar"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 rounded-xl text-xs font-semibold border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
+          >
+            Cerrar
+          </Button>
+          <Button
+            type="button"
+            onClick={handlePrint}
+            className="h-9 px-4 rounded-xl text-xs font-bold bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer active:scale-[0.98] transition-transform flex items-center gap-1.5"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Imprimir Ticket</span>
+          </Button>
+        </>
+      }
+    >
 
         {/* ================================================================= */}
         {/* TICKET DE VENTA IMPRIMIBLE (ESTILO TÉRMICO / FARMACIA)           */}
@@ -318,26 +323,6 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
           }
         `}</style>
 
-        <DialogFooter className="gap-2 pt-2 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-9 text-xs rounded-xl border-slate-200"
-          >
-            Cerrar
-          </Button>
-
-          <Button
-            type="button"
-            onClick={handlePrint}
-            className="h-9 gap-2 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Imprimir / Descargar PDF</span>
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </AppDrawer>
   );
 };

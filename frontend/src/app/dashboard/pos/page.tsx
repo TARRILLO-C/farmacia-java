@@ -47,14 +47,7 @@ import { Badge } from '@/components/ui/badge';
 import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 
 // Ítem dentro del carrito de compras
 interface CartItem {
@@ -1092,105 +1085,23 @@ export default function PosPage() {
       </div>
 
       {/* ==================================================================== */}
-      {/* MODAL DE COMPROBANTE DE PAGO / ÉXITO DE VENTA EMITIDA                 */}
+      {/* DRAWER DE COMPROBANTE DE PAGO / ÉXITO DE VENTA EMITIDA               */}
       {/* ==================================================================== */}
-      <Dialog
-        open={isSuccessModalOpen}
-        onOpenChange={(open) => !open && setIsSuccessModalOpen(false)}
-      >
-        <DialogContent className="sm:max-w-md rounded-2xl p-6">
-          <DialogHeader className="space-y-2 text-center items-center pb-3 border-b border-slate-100">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-xs">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <DialogTitle className="text-base font-black text-[#1a365d]">
-              ¡Venta Registrada Exitosamente!
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Comprobante emitido e inventario descontado en tiempo real.
-            </DialogDescription>
-          </DialogHeader>
-
-          {completedVenta && (
-            <div className="my-3 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-3 font-mono text-xs">
-              <div className="text-center pb-2 border-b border-dashed border-slate-300">
-                <span className="font-bold text-sm text-slate-900 block font-sans">
-                  BOTICA & FARMACIA CENTRAL
-                </span>
-                <span className="text-[10px] text-slate-500 block">RUC: 20489123891 • Chiclayo, Perú</span>
-                <span className="text-xs font-bold text-[#1a365d] mt-1 block">
-                  {tipoComprobante} ELECTRÓNICA: {completedVenta.numeroVenta}
-                </span>
-              </div>
-
-              <div className="text-[11px] space-y-0.5 text-slate-600">
-                <div>
-                  <b>Cliente:</b>{' '}
-                  {completedVenta.cliente
-                    ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido}`
-                    : 'PÚBLICO GENERAL'}
-                </div>
-                {completedVenta.cliente?.documentoIdentidad && (
-                  <div>
-                    <b>Documento:</b> {completedVenta.cliente.documentoIdentidad}
-                  </div>
-                )}
-                <div>
-                  <b>Fecha:</b> {new Date().toLocaleString()}
-                </div>
-                <div>
-                  <b>Pago:</b> {completedVenta.metodoPago}
-                </div>
-              </div>
-
-              <Separator className="bg-slate-300 border-dashed" />
-
-              {/* Detalle de Ítems */}
-              <div className="space-y-1 text-[11px]">
-                {completedVenta.detalles.map((d, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="truncate max-w-[200px]">
-                      {d.cantidad}x {d.producto?.nombre || `Fármaco #${d.productoId}`}
-                    </span>
-                    <span>S/. {(d.precioUnitario * d.cantidad).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Separator className="bg-slate-300 border-dashed" />
-
-              {/* Totales */}
-              <div className="space-y-1 text-xs">
-                {completedVenta.descuentoTotal > 0 && (
-                  <div className="flex justify-between text-amber-700">
-                    <span>Descuento ClienteAmigo:</span>
-                    <span>-S/. {completedVenta.descuentoTotal.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-500 text-[11px]">
-                  <span>IGV (18%):</span>
-                  <span>S/. {completedVenta.impuesto.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-black text-sm text-slate-900 pt-1">
-                  <span>TOTAL PAGADO:</span>
-                  <span>S/. {completedVenta.total.toFixed(2)}</span>
-                </div>
-                {completedVuelto > 0 && (
-                  <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Vuelto entregado:</span>
-                    <span>S/. {completedVuelto.toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 pt-2">
+      <AppDrawer
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="¡Venta Registrada Exitosamente!"
+        description="Comprobante emitido e inventario descontado en tiempo real."
+        icon={CheckCircle2}
+        maxWidth="max-w-md"
+        cancelText="Cerrar"
+        footer={
+          <>
             <Button
               type="button"
               variant="outline"
               onClick={handlePrintReceipt}
-              className="h-9 gap-1.5 text-xs rounded-xl border-slate-200"
+              className="h-9 gap-1.5 text-xs rounded-xl border-slate-200 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir Ticket</span>
@@ -1198,14 +1109,88 @@ export default function PosPage() {
             <Button
               type="button"
               onClick={() => setIsSuccessModalOpen(false)}
-              className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white"
+              className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer active:scale-[0.98] transition-transform"
             >
               <span>Nueva Venta</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        {completedVenta && (
+          <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-3 font-mono text-xs">
+            <div className="text-center pb-2 border-b border-dashed border-slate-300">
+              <span className="font-bold text-sm text-slate-900 block font-sans">
+                BOTICA & FARMACIA CENTRAL
+              </span>
+              <span className="text-[10px] text-slate-500 block">RUC: 20489123891 • Chiclayo, Perú</span>
+              <span className="text-xs font-bold text-[#1a365d] mt-1 block">
+                {tipoComprobante} ELECTRÓNICA: {completedVenta.numeroVenta}
+              </span>
+            </div>
+
+            <div className="text-[11px] space-y-0.5 text-slate-600">
+              <div>
+                <b>Cliente:</b>{' '}
+                {completedVenta.cliente
+                  ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido}`
+                  : 'PÚBLICO GENERAL'}
+              </div>
+              {completedVenta.cliente?.documentoIdentidad && (
+                <div>
+                  <b>Documento:</b> {completedVenta.cliente.documentoIdentidad}
+                </div>
+              )}
+              <div>
+                <b>Fecha:</b> {new Date().toLocaleString()}
+              </div>
+              <div>
+                <b>Pago:</b> {completedVenta.metodoPago}
+              </div>
+            </div>
+
+            <Separator className="bg-slate-300 border-dashed" />
+
+            {/* Detalle de Ítems */}
+            <div className="space-y-1 text-[11px]">
+              {completedVenta.detalles.map((d, i) => (
+                <div key={i} className="flex justify-between">
+                  <span className="truncate max-w-[200px]">
+                    {d.cantidad}x {d.producto?.nombre || `Fármaco #${d.productoId}`}
+                  </span>
+                  <span>S/. {(d.precioUnitario * d.cantidad).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+
+            <Separator className="bg-slate-300 border-dashed" />
+
+            {/* Totales */}
+            <div className="space-y-1 text-xs">
+              {completedVenta.descuentoTotal > 0 && (
+                <div className="flex justify-between text-amber-700">
+                  <span>Descuento ClienteAmigo:</span>
+                  <span>-S/. {completedVenta.descuentoTotal.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-500 text-[11px]">
+                <span>IGV (18%):</span>
+                <span>S/. {completedVenta.impuesto.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-black text-sm text-slate-900 pt-1">
+                <span>TOTAL PAGADO:</span>
+                <span>S/. {completedVenta.total.toFixed(2)}</span>
+              </div>
+              {completedVuelto > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Vuelto entregado:</span>
+                  <span>S/. {completedVuelto.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </AppDrawer>
     </div>
   );
 }

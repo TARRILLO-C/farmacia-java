@@ -15,14 +15,7 @@ import {
 } from 'lucide-react';
 import { Cliente, CreateClienteDTO, UpdateClienteDTO, TipoCliente } from '@/types';
 import { createCliente, updateCliente } from '@/services/clienteService';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -194,25 +187,19 @@ export const ClienteModal: React.FC<ClienteModalProps> = ({
   const isEditing = Boolean(clienteToEdit);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col" showCloseButton={false}>
-        {/* Cabecera Shadcn con acento temático */}
-        <div className="flex items-center gap-3 px-6 py-4 bg-[#1a365d] text-white shrink-0">
-          <div className="p-2.5 rounded-xl bg-gradient-to-tr from-[#319795] to-[#287e7c] text-white shadow-xs">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <DialogTitle className="text-white">
-              {isEditing ? 'Editar Ficha del Cliente' : 'Registrar Nuevo Cliente'}
-            </DialogTitle>
-            <DialogDescription className="text-slate-300">
-              Padrón farmacéutico y fidelización "ClienteAmigo"
-            </DialogDescription>
-          </div>
-        </div>
-
-        {/* Formulario scrollable */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 scrollbar-thin">
+    <AppDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar Ficha del Cliente' : 'Registrar Nuevo Cliente'}
+      description="Padrón farmacéutico y fidelización ClienteAmigo"
+      icon={User}
+      onSubmit={handleSubmit}
+      submitText={isEditing ? 'Guardar Cambios' : 'Registrar Cliente'}
+      submitIcon={CheckCircle2}
+      isSubmitting={isSubmitting}
+      maxWidth="max-w-2xl"
+    >
+      <div className="space-y-4">
           {errors.general && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -460,52 +447,23 @@ export const ClienteModal: React.FC<ClienteModalProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        </form>
-
-        {/* Pie de Acciones */}
-        <DialogFooter className="px-6 py-4 bg-slate-50/50 justify-between sm:justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
+          {/* Estado Activo */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-800 block">
+                Cliente Activo en Sistema
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Habilitado para acumular puntos y compras en POS
+              </span>
+            </div>
             <Switch
               checked={activo}
               onCheckedChange={setActivo}
             />
-            <span className="text-xs font-semibold text-slate-600">
-              Cliente Activo en Sistema
-            </span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-
-            <Button
-              type="submit"
-              variant="default"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#81e6d9]" />
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-[#81e6d9]" />
-                  <span>{isEditing ? 'Guardar Cambios' : 'Registrar Cliente'}</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </AppDrawer>
   );
 };
