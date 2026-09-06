@@ -29,6 +29,7 @@ import { ProductoModal } from '@/components/modules/productos/ProductoModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -457,49 +458,39 @@ export default function ProductosPage() {
         </div>
       )}
 
-      {/* Cabecera Principal */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-[#1a365d] tracking-tight">
-              Gestión de Productos e Inventario
-            </h1>
-            {isUsingDemo && (
-              <Badge variant="amber" className="text-[10px] uppercase font-bold">
-                Modo Demostración
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Control de catálogo farmacéutico, existencias, precios y fechas de caducidad.
-          </p>
-        </div>
+      {/* Acciones y Badge inyectados en la cabecera superior */}
+      {isUsingDemo && (
+        <HeaderBadge>
+          <Badge variant="amber" className="text-[10px] uppercase font-bold">
+            Modo Demostración
+          </Badge>
+        </HeaderBadge>
+      )}
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchData}
-            disabled={loading}
-            className="h-9 gap-2 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refrescar</span>
-          </Button>
+      <HeaderActions>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchData}
+          disabled={loading}
+          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refrescar</span>
+        </Button>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setProductoToEdit(null);
-              setIsModalOpen(true);
-            }}
-            className="h-9 gap-2 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-sm active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Producto</span>
-          </Button>
-        </div>
-      </div>
+        <Button
+          size="sm"
+          onClick={() => {
+            setProductoToEdit(null);
+            setIsModalOpen(true);
+          }}
+          className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Nuevo Producto</span>
+        </Button>
+      </HeaderActions>
 
       {/* Tarjetas Resumen / KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -44,6 +44,7 @@ import { postVenta } from '@/services/ventaService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -554,43 +555,30 @@ export default function PosPage() {
 
   return (
     <div className="space-y-4 pb-12">
-      {/* Barra Superior Informativa del POS */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3.5 px-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-[#319795] to-[#285e61] text-white shadow-xs">
-            <ShoppingCart className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-[#1a365d] tracking-tight flex items-center gap-2">
-              Punto de Venta Farmacéutico (POS)
-              <Badge variant="teal" className="text-[10px] font-bold">
-                Caja 01 - Turno Abierto
-              </Badge>
-            </h1>
-            <p className="text-xs text-slate-500">
-              Dispensación ágil, emisión de tickets y fidelización ClienteAmigo.
-            </p>
-          </div>
-        </div>
+      {/* Badge y Acciones inyectadas en la cabecera superior */}
+      <HeaderBadge>
+        <Badge variant="teal" className="text-[10px] font-bold">
+          Caja 01 - Turno Abierto
+        </Badge>
+      </HeaderBadge>
 
-        <div className="flex items-center gap-2">
-          {cart.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearCart}
-              className="h-8 gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Vaciar Orden</span>
-            </Button>
-          )}
-          <div className="hidden lg:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 bg-slate-100/80 rounded-xl text-slate-700">
-            <Barcode className="w-4 h-4 text-[#319795]" />
-            <span>Escáner de Barras Activo</span>
-          </div>
+      <HeaderActions>
+        {cart.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearCart}
+            className="h-8 sm:h-9 gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Vaciar Orden</span>
+          </Button>
+        )}
+        <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-slate-100/80 rounded-xl text-slate-700 border border-slate-200/60">
+          <Barcode className="w-3.5 h-3.5 text-[#319795]" />
+          <span className="hidden md:inline">Escáner Activo</span>
         </div>
-      </div>
+      </HeaderActions>
 
       {/* Grid Principal de 2 Columnas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -845,7 +833,7 @@ export default function PosPage() {
                     </p>
                   )}
                   <p className="text-[10px] text-slate-400">
-                    💡 Clientes con suscripción <b>ClienteAmigo</b> obtienen 5% de descuento directo.
+                    Clientes con suscripción <b>ClienteAmigo</b> obtienen 5% de descuento directo.
                   </p>
                 </form>
               )}
@@ -1094,7 +1082,7 @@ export default function PosPage() {
 
                 {isPrescriptionBlocked && (
                   <p className="text-[11px] text-rose-600 font-bold text-center mt-2">
-                    ⚠️ Debe asignar un cliente registrado para emitir venta con receta médica.
+                    Debe asignar un cliente registrado para emitir venta con receta médica.
                   </p>
                 )}
               </div>
