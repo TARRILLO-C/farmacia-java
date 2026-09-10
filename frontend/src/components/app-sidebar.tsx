@@ -105,13 +105,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 href="/dashboard"
                 className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center"
               >
-                <div className="flex aspect-square size-9 group-data-[collapsible=icon]:size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0d9488] to-[#0f766e] text-white shadow-md shrink-0">
+                <div className="flex aspect-square size-9 group-data-[collapsible=icon]:size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#319795] to-[#285e61] text-white shadow-md shrink-0">
                   <Activity className="size-5 stroke-[2.5]" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-bold text-white flex items-center gap-1.5">
                     SGF
-                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#0d9488]/30 text-[#5eead4] border border-[#0d9488]/50">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#319795]/30 text-[#81e6d9] border border-[#319795]/50">
                       v1.0
                     </span>
                   </span>
@@ -128,7 +128,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <div className="mt-1 px-1 group-data-[collapsible=icon]:hidden">
           <Button
             asChild
-            className="w-full justify-center gap-2 h-9 text-xs font-bold shadow-md bg-[#0d9488] hover:bg-[#0f766e] text-white rounded-xl active:scale-[0.98] transition-transform"
+            className="w-full justify-center gap-2 h-9 text-xs font-bold shadow-md bg-[#319795] hover:bg-[#287e7c] text-white rounded-xl active:scale-[0.98] transition-transform"
           >
             <Link href="/dashboard/pos">
               <PlusCircle className="size-4" />
@@ -172,7 +172,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       tooltip={item.title}
                       className={`gap-3 h-10 px-3 rounded-xl transition-all group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center ${
                         isActive
-                          ? 'bg-[#0d9488] text-white shadow-sm hover:bg-[#0f766e] hover:text-white font-bold'
+                          ? 'bg-[#319795] text-white shadow-sm hover:bg-[#287e7c] hover:text-white font-bold'
                           : 'text-slate-200 hover:bg-sidebar-accent hover:text-white font-medium'
                       }`}
                     >
@@ -195,7 +195,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </SidebarMenuButton>
 
                     {item.badge && (
-                      <SidebarMenuBadge className="bg-[#0d9488]/20 text-[#5eead4] border border-[#0d9488]/40 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md group-data-[collapsible=icon]:hidden">
+                      <SidebarMenuBadge className="bg-[#319795]/20 text-[#81e6d9] border border-[#319795]/40 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md group-data-[collapsible=icon]:hidden">
                         {item.badge}
                       </SidebarMenuBadge>
                     )}

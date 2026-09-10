@@ -136,11 +136,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 md:px-8 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
       {/* Lado Izquierdo: Botón Hamburguesa Móvil + Título + Badge Dinámico (Nunca se deforma) */}
       <div className="flex items-center gap-3 md:gap-4 shrink-0">
-        <SidebarTrigger className="h-9 w-9 text-slate-700 hover:text-[#0f172a] hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer shrink-0" />
+        <SidebarTrigger className="h-9 w-9 text-slate-700 hover:text-[#1a365d] hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer shrink-0" />
         <Separator orientation="vertical" className="h-6 hidden sm:block bg-slate-200 shrink-0" />
 
         <div className="flex items-center gap-2.5 shrink-0 whitespace-nowrap">
-          <h1 className="text-lg md:text-xl font-bold text-[#0f172a] tracking-tight whitespace-nowrap">
+          <h1 className="text-lg md:text-xl font-bold text-[#1a365d] tracking-tight whitespace-nowrap">
             {customTitle || activeModule.title}
           </h1>
           {badge}
@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar fármaco, código o cliente..."
-            className="w-full pl-10 pr-9 py-2 text-sm bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl border border-transparent focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/20 outline-hidden transition-all duration-200"
+            className="w-full pl-10 pr-9 py-2 text-sm bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl border border-transparent focus:border-[#319795] focus:ring-2 focus:ring-[#319795]/20 outline-hidden transition-all duration-200"
           />
           {searchQuery && (
             <button
@@ -177,13 +177,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <button
               type="button"
               onClick={() => setActionsDropdownOpen(!actionsDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-[#0f172a] border border-slate-200/80 shadow-2xs font-semibold text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-[#1a365d] border border-slate-200/80 shadow-2xs font-semibold text-xs transition-colors cursor-pointer"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#0d9488]" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#319795]" />
               <span className="hidden sm:inline">Acciones</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                  actionsDropdownOpen ? 'rotate-180 text-[#0d9488]' : ''
+                  actionsDropdownOpen ? 'rotate-180 text-[#319795]' : ''
                 }`}
               />
             </button>
@@ -216,10 +216,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <button
             type="button"
             aria-label="Notificaciones"
-            className="relative p-2.5 text-slate-600 hover:text-[#0f172a] hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-colors shadow-xs"
+            className="relative p-2.5 text-slate-600 hover:text-[#1a365d] hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-colors shadow-xs"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0d9488] rounded-full ring-2 ring-white"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#319795] rounded-full ring-2 ring-white"></span>
           </button>
         </div>
 
@@ -234,7 +234,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             className="flex items-center gap-3 p-1.5 pr-2.5 rounded-xl hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
           >
             {/* Avatar */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#0f172a] to-[#1e293b] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1a365d] to-[#2a4365] text-white flex items-center justify-center font-bold text-sm shadow-xs">
               {currentUser.nombre ? currentUser.nombre.charAt(0).toUpperCase() : 'U'}
             </div>
 
@@ -244,7 +244,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 {currentUser.nombre} {currentUser.apellido || ''}
               </span>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-[#0d9488]/10 text-[#0f766e] uppercase">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-[#319795]/10 text-[#287e7c] uppercase">
                   <Shield className="w-2.5 h-2.5" />
                   {currentUser.rol || 'USUARIO'}
                 </span>
@@ -262,7 +262,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Sesión activa
                 </p>
-                <p className="text-sm font-bold text-[#0f172a] truncate">
+                <p className="text-sm font-bold text-[#1a365d] truncate">
                   {currentUser.nombre} {currentUser.apellido || ''}
                 </p>
                 <p className="text-xs text-slate-500 truncate">
