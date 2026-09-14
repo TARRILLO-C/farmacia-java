@@ -20,10 +20,6 @@
 
 # 8. GESTIÓN DE CONFIGURACIÓN Y CONTROL DE VERSIONES
 
-La Gestión de Configuración del Software (SCM) y el Control de Versiones establecen la disciplina técnica, trazabilidad, reproducibilidad y gobernanza del código fuente y los artefactos del **Sistema de Gestión de Farmacia (SGF)** a lo largo de su ciclo de vida de desarrollo.
-
----
-
 ## 8.1. Documentación Técnica en el Repositorio
 
 El proyecto adopta una estructura desacoplada mediante un esquema de repositorio centralizado (*Monorepo organizado por dominios tecnológicos*), separando estrictamente la capa del servidor de aplicaciones de la capa de cliente web interactivo.
