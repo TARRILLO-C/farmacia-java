@@ -15,6 +15,8 @@ import {
   PlusCircle,
   LogOut,
   ChevronRight,
+  ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
 
 import {
@@ -33,13 +35,16 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { removeAuthToken } from '@/services/api';
+import { logout, getStoredUser } from '@/services/authService';
+import { Usuario, RolUsuario } from '@/types';
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  roles: RolUsuario[];
+  moduleKey: string;
 }
 
 const navItems: NavItem[] = [
@@ -47,48 +52,88 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    roles: ['ADMIN', 'CAJERO'],
+    moduleKey: 'dashboard',
   },
   {
     title: 'Punto de Venta (POS)',
     href: '/dashboard/pos',
     icon: ShoppingCart,
     badge: 'CAJA',
+    roles: ['ADMIN', 'CAJERO'],
+    moduleKey: 'pos',
   },
   {
     title: 'Inventario y Fármacos',
     href: '/dashboard/inventario',
     icon: Pill,
+    roles: ['ADMIN'],
+    moduleKey: 'inventario',
   },
   {
     title: 'Categorías',
     href: '/dashboard/categorias',
     icon: Tags,
+    roles: ['ADMIN'],
+    moduleKey: 'categorias',
   },
   {
     title: 'Clientes',
     href: '/dashboard/clientes',
     icon: Users,
+    roles: ['ADMIN', 'CAJERO'],
+    moduleKey: 'clientes',
   },
   {
     title: 'Historial de Ventas',
     href: '/dashboard/ventas',
     icon: FileText,
+    roles: ['ADMIN', 'CAJERO'],
+    moduleKey: 'ventas',
   },
   {
     title: 'Reportes y Métricas',
     href: '/dashboard/reportes',
     icon: BarChart3,
+    roles: ['ADMIN'],
+    moduleKey: 'reportes',
+  },
+  {
+    title: 'Usuarios del Sistema',
+    href: '/dashboard/usuarios',
+    icon: ShieldCheck,
+    roles: ['ADMIN'],
+    moduleKey: 'usuarios',
   },
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = React.useState<Usuario | null>(null);
+
+  React.useEffect(() => {
+    const user = getStoredUser();
+    setCurrentUser(user);
+  }, []);
 
   const handleLogout = () => {
-    removeAuthToken();
-    router.push('/login');
+    logout();
   };
+
+  // Filtrado de módulos dinámico según los permisos específicos del usuario
+  const visibleNavItems = React.useMemo(() => {
+    if (!currentUser) return navItems;
+
+    if (currentUser.modulosPermitidos && currentUser.modulosPermitidos.length > 0) {
+      return navItems.filter((item) => currentUser.modulosPermitidos!.includes(item.moduleKey));
+    }
+
+    if (currentUser.rol === 'ADMIN') return navItems;
+    return navItems.filter((item) =>
+      ['dashboard', 'pos', 'clientes', 'ventas'].includes(item.moduleKey)
+    );
+  }, [currentUser]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border" {...props}>
@@ -154,7 +199,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <SidebarGroupContent>
             <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
                   item.href === '/dashboard'
@@ -207,13 +252,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* 3. Footer con Turno / Usuario y Logout */}
+      {/* 3. Footer con Datos Reales de Sesión / Usuario y Logout */}
       <SidebarFooter className="p-3 border-t border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
         <SidebarMenu className="group-data-[collapsible=icon]:items-center">
           <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <SidebarMenuButton
               size="lg"
-              tooltip="Turno Activo (Cerrar Sesión)"
+              tooltip={`Sesión activa: ${currentUser?.nombre || currentUser?.username || 'Usuario'} (Cerrar Sesión)`}
               onClick={handleLogout}
               className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-rose-300 transition-colors rounded-xl group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
             >
@@ -221,8 +266,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="size-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
               <div className="grid flex-1 text-left text-xs leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-bold text-white">Turno Activo</span>
-                <span className="truncate text-[10px] text-slate-300">Caja Principal</span>
+                <span className="truncate font-bold text-white">
+                  {currentUser ? (currentUser.nombre || currentUser.username) : 'Sesión no iniciada'}
+                </span>
+                <span className="truncate text-[10px] text-slate-300 flex items-center gap-1">
+                  {currentUser ? (
+                    currentUser.rol === 'ADMIN' ? (
+                      <span className="text-blue-300 font-semibold">Administrador</span>
+                    ) : (
+                      <span className="text-emerald-300 font-semibold">Caja / Ventanilla</span>
+                    )
+                  ) : (
+                    <span className="text-slate-400">Sin autenticación</span>
+                  )}
+                  {currentUser?.username && (
+                    <span className="text-slate-400">(@{currentUser.username})</span>
+                  )}
+                </span>
               </div>
               <LogOut className="size-4 ml-auto text-slate-400 hover:text-rose-400 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>

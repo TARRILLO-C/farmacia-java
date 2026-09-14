@@ -1,17 +1,44 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/services/authService';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Header } from '@/components/layout/Header';
-
 import { HeaderProvider } from '@/components/layout/HeaderContext';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const authed = isAuthenticated();
+    if (!authed) {
+      router.replace('/login');
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [router]);
+
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#319795] to-[#285e61] flex items-center justify-center shadow-lg shadow-[#319795]/20 animate-pulse">
+            <Loader2 className="w-6 h-6 animate-spin text-white" />
+          </div>
+          <p className="text-sm font-medium text-slate-400">Verificando sesión activa...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <HeaderProvider>
       <SidebarProvider>
@@ -32,3 +59,4 @@ export default function DashboardLayout({
     </HeaderProvider>
   );
 }
+

@@ -22,11 +22,14 @@ export const setTokenCookie = (token: string, days: number = 7): void => {
 };
 
 /**
- * Remueve la cookie de sesión
+ * Remueve la cookie de sesión completamente
  */
 export const removeTokenCookie = (): void => {
   if (typeof document === 'undefined') return;
-  document.cookie = `${COOKIE_TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  // Borrado con path=/ y sin path
+  document.cookie = `${COOKIE_TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+  document.cookie = `${COOKIE_TOKEN_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+  document.cookie = `${COOKIE_TOKEN_KEY}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
 };
 
 /**
@@ -112,12 +115,16 @@ export const setSession = (
 };
 
 /**
- * Limpia todas las credenciales de sesión en localStorage y Cookies
+ * Limpia todas las credenciales de sesión en localStorage, sessionStorage y Cookies
  */
 export const clearSession = (): void => {
   if (typeof window !== 'undefined') {
     removeAuthToken();
     removeTokenCookie();
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem('token');
+    sessionStorage.clear();
   }
 };
 
@@ -145,8 +152,8 @@ export const isAuthenticated = (): boolean => {
 };
 
 /**
- * Inicia sesión comunicándose con el endpoint de Spring Boot (`POST /auth/login` o `/login`)
- * Con fallback automático para demo/desarrollo si el backend aún no está levantado
+ * Inicia sesión comunicándose con el backend de Spring Boot (`POST /auth/login`)
+ * Si falla, no genera datos ficticios; propaga el error para notificar al usuario.
  */
 export const login = async (
   credentials: LoginCredentials
@@ -154,78 +161,55 @@ export const login = async (
   const usernameOrEmail = (credentials.username || credentials.email || '').trim();
   const password = credentials.password || '';
 
-  try {
-    // Intentar autenticación con el backend de Spring Boot
-    const response = await api.post<AuthResponse | ApiResponse<AuthResponse>>(
-      '/auth/login',
-      {
-        username: usernameOrEmail,
-        password: password,
-      }
-    );
-
-    let authData: AuthResponse;
-
-    if (
-      response.data &&
-      typeof response.data === 'object' &&
-      'data' in response.data &&
-      (response.data as ApiResponse<AuthResponse>).data
-    ) {
-      authData = (response.data as ApiResponse<AuthResponse>).data;
-    } else {
-      authData = response.data as AuthResponse;
+  // Intentar autenticación real con el backend de Spring Boot
+  const response = await api.post<AuthResponse | ApiResponse<AuthResponse>>(
+    '/auth/login',
+    {
+      username: usernameOrEmail,
+      password: password,
     }
+  );
 
-    if (authData?.token && authData?.usuario) {
-      setSession(authData.token, authData.usuario, true);
-      return authData;
-    }
-    throw new Error('Respuesta de autenticación incompleta');
-  } catch (backendError) {
-    console.warn(
-      'No se pudo autenticar con el backend remoto. Validando con credenciales locales/demo:',
-      backendError
-    );
+  let authData: AuthResponse;
 
-    // Fallback de demostración / desarrollo
-    const userKey = usernameOrEmail.toLowerCase();
-    let selectedUser: Usuario = DEFAULT_USERS.admin;
+  if (
+    response.data &&
+    typeof response.data === 'object' &&
+    'data' in response.data &&
+    (response.data as ApiResponse<AuthResponse>).data
+  ) {
+    authData = (response.data as ApiResponse<AuthResponse>).data;
+  } else {
+    authData = response.data as AuthResponse;
+  }
 
-    if (userKey.includes('farma') || userKey.includes('valeria')) {
-      selectedUser = DEFAULT_USERS.farmaceutico;
-    } else if (userKey.includes('caj') || userKey.includes('luis')) {
-      selectedUser = DEFAULT_USERS.cajero;
-    } else if (userKey === 'admin' || userKey.includes('admin@')) {
-      selectedUser = DEFAULT_USERS.admin;
-    } else {
-      // Usuario genérico para cualquier credencial introducida en modo demo
-      selectedUser = {
-        id: 99,
-        nombre: usernameOrEmail.split('@')[0] || 'Usuario',
-        apellido: 'Farmacia',
-        username: usernameOrEmail,
-        email: usernameOrEmail.includes('@') ? usernameOrEmail : `${usernameOrEmail}@farmacia.pe`,
-        rol: 'ADMIN',
-        activo: true,
-      };
-    }
-
-    const mockToken = generateMockJwtToken(selectedUser);
-    const mockAuthResponse: AuthResponse = {
-      token: mockToken,
-      type: 'Bearer',
-      usuario: selectedUser,
+  if (authData?.token) {
+    // Si el backend no envió el objeto usuario completo, armarlo a partir de la respuesta
+    const usuario: Usuario = authData.usuario || {
+      id: 1,
+      username: authData.username || usernameOrEmail,
+      nombre: authData.nombre || usernameOrEmail,
+      apellido: '',
+      email: `${usernameOrEmail}@farmacia.com`,
+      rol: (authData.rol as any) || 'ADMIN',
+      activo: true,
     };
 
-    setSession(mockToken, selectedUser, true);
-    return mockAuthResponse;
+    setSession(authData.token, usuario, true);
+    return {
+      ...authData,
+      usuario,
+    };
   }
+  throw new Error('Respuesta de autenticación incompleta del servidor.');
 };
 
 /**
- * Cierra la sesión activa
+ * Cierra la sesión activa: elimina cookies, storage y redirige a login
  */
 export const logout = (): void => {
   clearSession();
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login';
+  }
 };

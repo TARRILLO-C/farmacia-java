@@ -54,7 +54,8 @@ function LoginFormContent() {
         password: password,
       });
 
-      router.push('/dashboard');
+      const callbackUrl = searchParams.get('callbackUrl');
+      router.push(callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/dashboard');
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -169,7 +170,7 @@ function LoginFormContent() {
         </Card>
 
         {/* Acceso Rápido Demo (1-Click) */}
-        <div className="flex items-center justify-center gap-2 pt-0.5">
+        {/* <div className="flex items-center justify-center gap-2 pt-0.5">
           <span className="text-[11px] text-slate-400">Acceso demo:</span>
           <button
             type="button"
@@ -180,12 +181,12 @@ function LoginFormContent() {
           </button>
           <button
             type="button"
-            onClick={() => setDemo('cajero', 'caja2026')}
+            onClick={() => setDemo('cajero', 'cajero123')}
             className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white text-slate-600 hover:text-[#1a365d] border border-slate-200/90 shadow-2xs hover:border-[#319795]/50 transition-all cursor-pointer"
           >
             Cajero
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
