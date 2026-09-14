@@ -44,95 +44,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-const DEMO_CLIENTES: Cliente[] = [
-  {
-    id: 1,
-    documentoIdentidad: '74218934',
-    tipoDocumento: 'DNI',
-    nombre: 'Elena Rosa',
-    apellido: 'Mendoza Paredes',
-    email: 'elena.mendoza@gmail.com',
-    telefono: '984123456',
-    direccion: 'Av. Bolognesi 412, Chiclayo',
-    tipoCliente: TipoCliente.BENEFICIARIO,
-    esClienteAmigo: true,
-    codigoClienteAmigo: 'CA-48291',
-    puntosFidelidad: 180,
-    totalCompras: 14,
-    montoTotalComprado: 684.5,
-    activo: true,
-  },
-  {
-    id: 2,
-    documentoIdentidad: '41982341',
-    tipoDocumento: 'DNI',
-    nombre: 'Carlos Manuel',
-    apellido: 'Arroyo Vega',
-    email: 'carlos.arroyo@outlook.com',
-    telefono: '978554210',
-    direccion: 'Calle Real 230, Pimentel',
-    tipoCliente: TipoCliente.REGULAR,
-    esClienteAmigo: true,
-    codigoClienteAmigo: 'CA-10294',
-    puntosFidelidad: 95,
-    totalCompras: 8,
-    montoTotalComprado: 340.0,
-    activo: true,
-  },
-  {
-    id: 3,
-    documentoIdentidad: '20608941234',
-    tipoDocumento: 'RUC',
-    nombre: 'Policlínico San Judas Tadeo SAC',
-    apellido: '',
-    email: 'adquisiciones@sanjudas.pe',
-    telefono: '074-281920',
-    direccion: 'Av. Luis Gonzales 890',
-    tipoCliente: TipoCliente.BENEFICIARIO,
-    esClienteAmigo: false,
-    totalCompras: 22,
-    montoTotalComprado: 4820.0,
-    activo: true,
-  },
-  {
-    id: 4,
-    documentoIdentidad: '71920412',
-    tipoDocumento: 'DNI',
-    nombre: 'Lucía Fernanda',
-    apellido: 'Gómez Ruiz',
-    email: 'lucia.gomez@gmail.com',
-    telefono: '951234871',
-    direccion: 'Urb. Santa Victoria Mz. C Lt. 4',
-    tipoCliente: TipoCliente.NUEVO,
-    esClienteAmigo: true,
-    codigoClienteAmigo: 'CA-88402',
-    puntosFidelidad: 50,
-    totalCompras: 1,
-    montoTotalComprado: 45.0,
-    activo: true,
-  },
-  {
-    id: 5,
-    documentoIdentidad: '10478291',
-    tipoDocumento: 'DNI',
-    nombre: 'Jorge Alberto',
-    apellido: 'Niñan Bustamante',
-    email: 'jorge.ninan@hotmail.com',
-    telefono: '942187342',
-    direccion: 'Av. Salaverry 104',
-    tipoCliente: TipoCliente.REGULAR,
-    esClienteAmigo: false,
-    totalCompras: 4,
-    montoTotalComprado: 128.5,
-    activo: true,
-  },
-];
-
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUsingDemo, setIsUsingDemo] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
@@ -162,17 +77,10 @@ export default function ClientesPage() {
     setError(null);
     try {
       const data = await getClientes();
-      if (data && data.length > 0) {
-        setClientes(data);
-        setIsUsingDemo(false);
-      } else {
-        setClientes(DEMO_CLIENTES);
-        setIsUsingDemo(true);
-      }
+      setClientes(Array.isArray(data) ? data : []);
     } catch {
-      setError('Servidor Spring Boot desconectado. Mostrando padrón demostrativo.');
-      setClientes(DEMO_CLIENTES);
-      setIsUsingDemo(true);
+      setError('No se pudo conectar con el servidor.');
+      setClientes([]);
     } finally {
       setLoading(false);
     }
@@ -225,18 +133,14 @@ export default function ClientesPage() {
 
     setIsDeleting(true);
     try {
-      if (!isUsingDemo) {
-        await deleteCliente(clienteToDelete.id);
-      } else {
-        setClientes((prev) => prev.filter((c) => c.id !== clienteToDelete.id));
-      }
+      await deleteCliente(clienteToDelete.id);
 
       showToast(
         'success',
         `Cliente ${clienteToDelete.nombre} ${clienteToDelete.apellido} eliminado correctamente.`
       );
       setClienteToDelete(null);
-      if (!isUsingDemo) fetchClientes();
+      fetchClientes();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -336,19 +240,17 @@ export default function ClientesPage() {
         </div>
       </Card>
 
-      {isUsingDemo && (
-        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3 shadow-2xs">
+      {error && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              <strong>Aviso:</strong> {error || 'Servidor desconectado. Mostrando padrón demostrativo.'}
-            </span>
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
           </div>
           <button
             onClick={fetchClientes}
-            className="text-amber-800 underline font-bold hover:text-amber-950 shrink-0 cursor-pointer"
+            className="text-rose-800 underline font-bold hover:text-rose-950 shrink-0 cursor-pointer"
           >
-            Reconectar
+            Reintentar
           </button>
         </div>
       )}
@@ -434,9 +336,15 @@ export default function ClientesPage() {
                     <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
                       <Users className="w-8 h-8" />
                     </div>
-                    <p className="text-sm font-bold text-slate-700">No se encontraron clientes</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {searchTerm || filtroTipo !== 'TODOS' || soloClienteAmigo
+                        ? 'No se encontraron clientes'
+                        : 'Sin datos'}
+                    </p>
                     <p className="text-xs text-slate-400">
-                      Prueba con otro término de búsqueda o cambia los filtros.
+                      {searchTerm || filtroTipo !== 'TODOS' || soloClienteAmigo
+                        ? 'Prueba con otro término de búsqueda o cambia los filtros.'
+                        : 'No hay clientes registrados en el sistema.'}
                     </p>
                   </div>
                 </TableCell>

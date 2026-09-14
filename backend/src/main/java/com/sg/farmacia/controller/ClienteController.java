@@ -3,7 +3,9 @@ package com.sg.farmacia.controller;
 import com.sg.farmacia.dto.ApiResponse;
 import com.sg.farmacia.dto.cliente.ClienteRequestDTO;
 import com.sg.farmacia.dto.cliente.ClienteResponseDTO;
+import com.sg.farmacia.dto.venta.VentaResponseDTO;
 import com.sg.farmacia.service.ClienteService;
+import com.sg.farmacia.service.VentaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import java.util.List;
 public class ClienteController {
 
     private final ClienteService clienteService;
+    private final VentaService ventaService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ClienteResponseDTO>>> listarTodos() {
@@ -29,6 +32,12 @@ public class ClienteController {
     public ResponseEntity<ApiResponse<ClienteResponseDTO>> obtenerPorId(@PathVariable Long id) {
         ClienteResponseDTO cliente = clienteService.obtenerPorId(id);
         return ResponseEntity.ok(ApiResponse.success(cliente, "Cliente encontrado"));
+    }
+
+    @GetMapping("/{id}/compras")
+    public ResponseEntity<ApiResponse<List<VentaResponseDTO>>> obtenerComprasPorCliente(@PathVariable Long id) {
+        List<VentaResponseDTO> compras = ventaService.listarPorClienteId(id);
+        return ResponseEntity.ok(ApiResponse.success(compras, "Historial de compras del cliente obtenido con éxito"));
     }
 
     @GetMapping("/documento/{dniRuc}")

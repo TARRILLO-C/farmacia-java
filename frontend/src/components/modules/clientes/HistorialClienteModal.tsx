@@ -24,91 +24,6 @@ interface HistorialClienteModalProps {
   cliente: Cliente | null;
 }
 
-const DEMO_COMPRAS: Venta[] = [
-  {
-    id: 101,
-    numeroVenta: 'VNT-2026-0041',
-    fecha: '2026-09-01T14:30:00Z',
-    usuarioId: 1,
-    subtotal: 75.0,
-    descuentoTotal: 7.5,
-    impuesto: 12.15,
-    total: 67.5,
-    estado: 'COMPLETADA' as EstadoVenta,
-    metodoPago: 'YAPE' as MetodoPago,
-    detalles: [
-      {
-        productoId: 1,
-        cantidad: 2,
-        precioUnitario: 25.0,
-        descuento: 5.0,
-        subtotal: 45.0,
-        producto: {
-          id: 1,
-          codigo: 'MED-001',
-          nombre: 'Amoxicilina 500mg Caps.',
-          precio: 25.0,
-          stock: 40,
-          stockMinimo: 10,
-          requiereReceta: true,
-          activo: true,
-          categoriaId: 1,
-        },
-      },
-      {
-        productoId: 2,
-        cantidad: 1,
-        precioUnitario: 25.0,
-        descuento: 2.5,
-        subtotal: 22.5,
-        producto: {
-          id: 2,
-          codigo: 'MED-002',
-          nombre: 'Ibuprofeno 400mg Tab.',
-          precio: 15.0,
-          stock: 60,
-          stockMinimo: 15,
-          requiereReceta: false,
-          activo: true,
-          categoriaId: 1,
-        },
-      },
-    ],
-  },
-  {
-    id: 102,
-    numeroVenta: 'VNT-2026-0035',
-    fecha: '2026-08-28T10:15:00Z',
-    usuarioId: 1,
-    subtotal: 35.0,
-    descuentoTotal: 0.0,
-    impuesto: 5.67,
-    total: 35.0,
-    estado: 'COMPLETADA' as EstadoVenta,
-    metodoPago: 'EFECTIVO' as MetodoPago,
-    detalles: [
-      {
-        productoId: 3,
-        cantidad: 1,
-        precioUnitario: 35.0,
-        descuento: 0.0,
-        subtotal: 35.0,
-        producto: {
-          id: 3,
-          codigo: 'MED-003',
-          nombre: 'Paracetamol 500mg Gotas',
-          precio: 35.0,
-          stock: 20,
-          stockMinimo: 5,
-          requiereReceta: false,
-          activo: true,
-          categoriaId: 1,
-        },
-      },
-    ],
-  },
-];
-
 export const HistorialClienteModal: React.FC<HistorialClienteModalProps> = ({
   isOpen,
   onClose,
@@ -124,14 +39,10 @@ export const HistorialClienteModal: React.FC<HistorialClienteModalProps> = ({
       setError(null);
       getHistorialComprasCliente(cliente.id)
         .then((data) => {
-          if (data && data.length > 0) {
-            setCompras(data);
-          } else {
-            setCompras(DEMO_COMPRAS);
-          }
+          setCompras(Array.isArray(data) ? data : []);
         })
         .catch(() => {
-          setCompras(DEMO_COMPRAS);
+          setCompras([]);
         })
         .finally(() => {
           setLoading(false);
@@ -236,8 +147,9 @@ export const HistorialClienteModal: React.FC<HistorialClienteModalProps> = ({
           ) : compras.length === 0 ? (
             <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
               <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-xs text-slate-500 font-medium">
-                Este cliente aún no registra transacciones en el sistema.
+              <p className="text-sm font-bold text-slate-700">Sin datos</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Este cliente no registra transacciones ni compras en el sistema.
               </p>
             </div>
           ) : (
@@ -260,7 +172,7 @@ export const HistorialClienteModal: React.FC<HistorialClienteModalProps> = ({
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
                       <Calendar className="w-3.5 h-3.5" />
                       <span>
-                        {new Date(compra.fecha).toLocaleDateString('es-PE', {
+                        {new Date(compra.fecha || compra.fechaVenta || Date.now()).toLocaleDateString('es-PE', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
@@ -283,7 +195,7 @@ export const HistorialClienteModal: React.FC<HistorialClienteModalProps> = ({
                           </span>
                         </div>
                         <span className="font-mono text-slate-600 font-semibold">
-                          S/. {det.subtotal.toFixed(2)}
+                          S/. {Number(det.subtotal ?? (det.precioUnitario * det.cantidad || 0)).toFixed(2)}
                         </span>
                       </div>
                     ))}

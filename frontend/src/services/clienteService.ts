@@ -6,11 +6,55 @@ import {
   ApiResponse,
   Venta,
 } from '@/types';
+import { normalizeVenta, getVentas } from './ventaService';
 
 /**
  * Servicio para gestión de Clientes y Programa de Fidelización "ClienteAmigo"
  * Endpoint base: /clientes
  */
+
+/**
+ * Normaliza objetos Cliente recibidos del backend Spring Boot (ClienteResponseDTO)
+ * asegurando consistencia entre DTOs y compatibilidad total con el frontend Next.js.
+ */
+export const normalizeCliente = (raw: any): Cliente => {
+  if (!raw) return raw;
+  const doc = (raw.documentoIdentidad || raw.dniRuc || '').toString().trim();
+  let nombre = (raw.nombre || '').toString().trim();
+  let apellido = (raw.apellido || '').toString().trim();
+
+  if (!nombre && raw.nombreCompleto) {
+    const parts = raw.nombreCompleto.toString().trim().split(/\s+/);
+    nombre = parts[0] || '';
+    apellido = parts.slice(1).join(' ') || '';
+  }
+
+  const nombreCompleto =
+    raw.nombreCompleto ||
+    `${nombre} ${apellido}`.trim() ||
+    'Cliente';
+
+  return {
+    ...raw,
+    id: raw.id,
+    dniRuc: doc,
+    documentoIdentidad: doc,
+    tipoDocumento: raw.tipoDocumento || (doc.length === 11 ? 'RUC' : 'DNI'),
+    nombre,
+    apellido,
+    nombreCompleto,
+    direccion: raw.direccion || '',
+    telefono: raw.telefono || '',
+    email: raw.email || '',
+    tipoCliente: raw.tipoCliente || 'REGULAR',
+    esClienteAmigo: Boolean(raw.esClienteAmigo),
+    codigoClienteAmigo: raw.codigoClienteAmigo || raw.numeroClienteAmigo,
+    numeroClienteAmigo: raw.numeroClienteAmigo || raw.codigoClienteAmigo,
+    porcentajeDescuento: Number(raw.porcentajeDescuento ?? (raw.esClienteAmigo ? 5 : 0)),
+    puntosFidelidad: Number(raw.puntosFidelidad ?? 0),
+    activo: raw.activo ?? true,
+  };
+};
 
 /**
  * Obtiene el listado completo de clientes
@@ -21,25 +65,24 @@ export const getClientes = async (): Promise<Cliente[]> => {
       Cliente[] | ApiResponse<Cliente[]> | { content: Cliente[] }
     >('/clientes');
 
+    let rawList: any[] = [];
     if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    if (
+      rawList = response.data;
+    } else if (
       response.data &&
       'data' in response.data &&
       Array.isArray((response.data as ApiResponse<Cliente[]>).data)
     ) {
-      return (response.data as ApiResponse<Cliente[]>).data;
-    }
-    if (
+      rawList = (response.data as ApiResponse<Cliente[]>).data;
+    } else if (
       response.data &&
       'content' in response.data &&
       Array.isArray((response.data as { content: Cliente[] }).content)
     ) {
-      return (response.data as { content: Cliente[] }).content;
+      rawList = (response.data as { content: Cliente[] }).content;
     }
 
-    return [];
+    return rawList.map(normalizeCliente);
   } catch (error) {
     console.error('Error al obtener clientes desde la API:', error);
     throw error;
@@ -55,15 +98,16 @@ export const getClienteById = async (id: number): Promise<Cliente> => {
       `/clientes/${id}`
     );
 
+    let rawData: any = response.data;
     if (
       response.data &&
       typeof response.data === 'object' &&
       'data' in response.data
     ) {
-      return (response.data as ApiResponse<Cliente>).data;
+      rawData = (response.data as ApiResponse<Cliente>).data;
     }
 
-    return response.data as Cliente;
+    return normalizeCliente(rawData);
   } catch (error) {
     console.error(`Error al obtener cliente ID ${id}:`, error);
     throw error;
@@ -76,23 +120,53 @@ export const getClienteById = async (id: number): Promise<Cliente> => {
 export const buscarClientePorDocumentoOCodigo = async (
   termino: string
 ): Promise<Cliente | null> => {
+  const query = termino.trim();
+  if (!query) return null;
+
   try {
-    const response = await api.get<Cliente | ApiResponse<Cliente>>(
+    const response = await api.get<any>(
       `/clientes/buscar`,
       {
-        params: { termino: termino.trim() },
+        params: { termino: query, term: query },
       }
     );
 
-    if (
-      response.data &&
-      typeof response.data === 'object' &&
-      'data' in response.data
-    ) {
-      return (response.data as ApiResponse<Cliente>).data;
+    let rawData = response.data;
+    if (rawData && typeof rawData === 'object' && 'data' in rawData) {
+      rawData = rawData.data;
     }
 
-    return response.data as Cliente;
+    if (Array.isArray(rawData)) {
+      if (rawData.length > 0) {
+        // Encontrar coincidencia exacta por DNI/RUC o código, o tomar el primero
+        const exactMatch = rawData.find(
+          (c: any) =>
+            (c.dniRuc && c.dniRuc.trim() === query) ||
+            (c.documentoIdentidad && c.documentoIdentidad.trim() === query) ||
+            (c.numeroClienteAmigo && c.numeroClienteAmigo.trim().toLowerCase() === query.toLowerCase()) ||
+            (c.codigoClienteAmigo && c.codigoClienteAmigo.trim().toLowerCase() === query.toLowerCase())
+        );
+        return normalizeCliente(exactMatch || rawData[0]);
+      }
+    } else if (rawData && typeof rawData === 'object' && rawData.id) {
+      return normalizeCliente(rawData);
+    }
+
+    // Fallback: intentar por endpoint directo de documento
+    try {
+      const directDocRes = await api.get<any>(`/clientes/documento/${encodeURIComponent(query)}`);
+      let docData = directDocRes.data;
+      if (docData && typeof docData === 'object' && 'data' in docData) {
+        docData = docData.data;
+      }
+      if (docData && typeof docData === 'object' && docData.id) {
+        return normalizeCliente(docData);
+      }
+    } catch {
+      // Ignorar si no existe
+    }
+
+    return null;
   } catch (error) {
     console.warn(`Cliente con documento/código "${termino}" no encontrado:`, error);
     return null;
@@ -173,31 +247,37 @@ export const getHistorialComprasCliente = async (
   clienteId: number
 ): Promise<Venta[]> => {
   try {
-    const response = await api.get<
-      Venta[] | ApiResponse<Venta[]> | { content: Venta[] }
-    >(`/clientes/${clienteId}/compras`);
+    const response = await api.get<any>(`/clientes/${clienteId}/compras`);
 
+    let rawList: any[] = [];
     if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    if (
+      rawList = response.data;
+    } else if (
       response.data &&
       'data' in response.data &&
       Array.isArray((response.data as ApiResponse<Venta[]>).data)
     ) {
-      return (response.data as ApiResponse<Venta[]>).data;
-    }
-    if (
+      rawList = (response.data as ApiResponse<Venta[]>).data;
+    } else if (
       response.data &&
       'content' in response.data &&
       Array.isArray((response.data as { content: Venta[] }).content)
     ) {
-      return (response.data as { content: Venta[] }).content;
+      rawList = (response.data as { content: Venta[] }).content;
     }
 
-    return [];
-  } catch (error) {
-    console.warn(`No se pudo cargar historial de compras para cliente ${clienteId}:`, error);
-    return [];
+    return rawList.map(normalizeVenta);
+  } catch {
+    // Fallback silencioso: consultar /ventas y filtrar por clienteId para evitar errores 500 en consola
+    try {
+      const allVentas = await getVentas();
+      return allVentas.filter(
+        (v) =>
+          Number(v.clienteId) === Number(clienteId) ||
+          Number(v.cliente?.id) === Number(clienteId)
+      );
+    } catch {
+      return [];
+    }
   }
 };
