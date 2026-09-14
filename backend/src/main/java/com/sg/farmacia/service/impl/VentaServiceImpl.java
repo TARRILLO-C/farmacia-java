@@ -9,9 +9,11 @@ import com.sg.farmacia.exception.ResourceNotFoundException;
 import com.sg.farmacia.model.Cliente;
 import com.sg.farmacia.model.DetalleVenta;
 import com.sg.farmacia.model.Producto;
+import com.sg.farmacia.model.Recibo;
 import com.sg.farmacia.model.Venta;
 import com.sg.farmacia.repository.ClienteRepository;
 import com.sg.farmacia.repository.ProductoRepository;
+import com.sg.farmacia.repository.ReciboRepository;
 import com.sg.farmacia.repository.VentaRepository;
 import com.sg.farmacia.service.VentaService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +38,7 @@ public class VentaServiceImpl implements VentaService {
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
     private final ClienteRepository clienteRepository;
+    private final ReciboRepository reciboRepository;
 
     @Override
     @Transactional
@@ -152,7 +157,24 @@ public class VentaServiceImpl implements VentaService {
         }
 
         Venta ventaGuardada = ventaRepository.save(venta);
-        log.info("Venta procesada exitosamente con ID: {}, Total: S/ {}", ventaGuardada.getId(), ventaGuardada.getTotal());
+
+        // 8. Generar automáticamente el registro de Recibo
+        long nextId = (reciboRepository.findMaxId() != null ? reciboRepository.findMaxId() : 0L) + 1;
+        int anio = (ventaGuardada.getFechaVenta() != null) ? ventaGuardada.getFechaVenta().getYear() : LocalDate.now().getYear();
+        String codigoComprobante = String.format("REC-%d-%05d", anio, nextId);
+
+        Recibo recibo = Recibo.builder()
+                .codigoComprobante(codigoComprobante)
+                .fechaEmision(ventaGuardada.getFechaVenta())
+                .venta(ventaGuardada)
+                .totalPagado(ventaGuardada.getTotal())
+                .build();
+
+        Recibo reciboGuardado = reciboRepository.save(recibo);
+        ventaGuardada.setRecibo(reciboGuardado);
+
+        log.info("Venta procesada exitosamente con ID: {}, Recibo: {}, Total: S/ {}",
+                ventaGuardada.getId(), codigoComprobante, ventaGuardada.getTotal());
 
         return mapearAVentaResponse(ventaGuardada, esAmigo);
     }
@@ -161,6 +183,20 @@ public class VentaServiceImpl implements VentaService {
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listarTodas() {
         return ventaRepository.findAllConDetalles().stream()
+                .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> listarHistorial(LocalDate fechaInicio, LocalDate fechaFin, String dniCliente) {
+        LocalDateTime desde = (fechaInicio != null) ? fechaInicio.atStartOfDay() : null;
+        LocalDateTime hasta = (fechaFin != null) ? fechaFin.atTime(LocalTime.MAX) : null;
+        String dni = (dniCliente != null && !dniCliente.trim().isEmpty()) ? dniCliente.trim() : null;
+
+        log.info("Consultando historial de ventas. Desde: {}, Hasta: {}, DNI: {}", desde, hasta, dni);
+
+        return ventaRepository.buscarHistorial(desde, hasta, dni).stream()
                 .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
                 .collect(Collectors.toList());
     }
@@ -211,7 +247,8 @@ public class VentaServiceImpl implements VentaService {
     }
 
     private VentaResponseDTO mapearAVentaResponse(Venta venta, boolean esAmigo) {
-        List<DetalleVentaResponseDTO> detallesDTO = venta.getDetalles().stream()
+        List<DetalleVentaResponseDTO> detallesDTO = (venta.getDetalles() != null)
+                ? venta.getDetalles().stream()
                 .map(d -> DetalleVentaResponseDTO.builder()
                         .id(d.getId())
                         .productoId(d.getProducto() != null ? d.getProducto().getId() : null)
@@ -221,7 +258,8 @@ public class VentaServiceImpl implements VentaService {
                         .precioUnitario(d.getPrecioUnitario())
                         .subtotalItem(d.getSubtotalItem())
                         .build())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                : new ArrayList<>();
 
         return VentaResponseDTO.builder()
                 .id(venta.getId())
@@ -235,6 +273,8 @@ public class VentaServiceImpl implements VentaService {
                 .clienteNombre(venta.getCliente() != null ? venta.getCliente().getNombreCompleto() : "Público General")
                 .clienteDocumento(venta.getCliente() != null ? venta.getCliente().getDniRuc() : "Sin Documento")
                 .esClienteAmigo(esAmigo)
+                .reciboId(venta.getRecibo() != null ? venta.getRecibo().getId() : null)
+                .codigoComprobante(venta.getRecibo() != null ? venta.getRecibo().getCodigoComprobante() : null)
                 .detalles(detallesDTO)
                 .build();
     }

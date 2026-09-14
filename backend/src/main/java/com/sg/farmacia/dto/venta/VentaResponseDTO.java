@@ -25,5 +25,7 @@ public class VentaResponseDTO {
     private String clienteNombre;
     private String clienteDocumento;
     private boolean esClienteAmigo;
+    private Long reciboId;
+    private String codigoComprobante;
     private List<DetalleVentaResponseDTO> detalles;
 }

@@ -13,6 +13,19 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
 
     List<Venta> findByClienteId(Long clienteId);
 
-    @Query("SELECT v FROM Venta v LEFT JOIN FETCH v.detalles d LEFT JOIN FETCH d.producto LEFT JOIN FETCH v.cliente ORDER BY v.fechaVenta DESC")
+    @Query("SELECT v FROM Venta v LEFT JOIN FETCH v.detalles d LEFT JOIN FETCH d.producto LEFT JOIN FETCH v.cliente LEFT JOIN FETCH v.recibo ORDER BY v.fechaVenta DESC")
     List<Venta> findAllConDetalles();
+
+    @Query("SELECT DISTINCT v FROM Venta v " +
+           "LEFT JOIN FETCH v.detalles d " +
+           "LEFT JOIN FETCH d.producto " +
+           "LEFT JOIN FETCH v.cliente c " +
+           "LEFT JOIN FETCH v.recibo r " +
+           "WHERE (:fechaInicio IS NULL OR v.fechaVenta >= :fechaInicio) " +
+           "AND (:fechaFin IS NULL OR v.fechaVenta <= :fechaFin) " +
+           "AND (:dni IS NULL OR :dni = '' OR (c IS NOT NULL AND LOWER(c.dniRuc) = LOWER(:dni))) " +
+           "ORDER BY v.fechaVenta DESC")
+    List<Venta> buscarHistorial(@Param("fechaInicio") java.time.LocalDateTime fechaInicio,
+                                @Param("fechaFin") java.time.LocalDateTime fechaFin,
+                                @Param("dni") String dni);
 }

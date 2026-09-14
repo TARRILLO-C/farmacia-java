@@ -12,8 +12,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "detalles")
-@EqualsAndHashCode(exclude = "detalles")
+@ToString(exclude = {"detalles", "recibo"})
+@EqualsAndHashCode(exclude = {"detalles", "recibo"})
 @Entity
 @Table(name = "ventas", indexes = {
         @Index(name = "idx_venta_fecha", columnList = "fecha_venta"),
@@ -54,6 +54,9 @@ public class Venta {
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DetalleVenta> detalles = new ArrayList<>();
+
+    @OneToOne(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Recibo recibo;
 
     @PrePersist
     public void prePersist() {

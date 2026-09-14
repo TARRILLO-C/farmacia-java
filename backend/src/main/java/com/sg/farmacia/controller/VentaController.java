@@ -33,6 +33,15 @@ public class VentaController {
         return ResponseEntity.ok(ApiResponse.success(ventas, "Listado de ventas obtenido con éxito"));
     }
 
+    @GetMapping("/historial")
+    public ResponseEntity<ApiResponse<List<VentaResponseDTO>>> listarHistorial(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaInicio,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fechaFin,
+            @RequestParam(required = false) String dni) {
+        List<VentaResponseDTO> historial = ventaService.listarHistorial(fechaInicio, fechaFin, dni);
+        return ResponseEntity.ok(ApiResponse.success(historial, "Historial de ventas filtrado obtenido con éxito"));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<VentaResponseDTO>> obtenerPorId(@PathVariable Long id) {
         VentaResponseDTO venta = ventaService.obtenerPorId(id);
