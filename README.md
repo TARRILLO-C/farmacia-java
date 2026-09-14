@@ -8,13 +8,13 @@
 
 ## Integrantes del Proyecto
 
-| N° | Apellidos y Nombres | Código Universitario | Rol en el Proyecto |
-|:--:|:--------------------|:--------------------:|:-------------------|
-| 1 | Arroyo Vega, Carlos Felipe | U23214686 | Desarrollador Backend & QA |
-| 2 | Bustamante Suclupe, Carlos Andres | U23211770 | Desarrollador Backend & DB Admin |
-| 3 | Llapapasca Montes, Ronal James | U22221880 | Desarrollador Fullstack & DevOps |
-| 4 | Niñan Gonzales, Danna Jael | U23214477 | Desarrolladora Frontend & UI/UX |
-| 5 | Tarrillo Condor, Nigson Shrimi | U23224391 | Líder Técnico & Diseñador de Software |
+| N° | Apellidos y Nombres | Código Universitario |
+|:--:|:--------------------|:--------------------:|
+| 1 | Arroyo Vega, Carlos Felipe | U23214686 | 
+| 2 | Bustamante Suclupe, Carlos Andres | U23211770 |
+| 3 | Llapapasca Montes, Ronal James | U22221880 | 
+| 4 | Niñan Gonzales, Danna Jael | U23214477 | 
+| 5 | Tarrillo Condor, Nigson Shrimi | U23224391 | 
 
 ---
 
