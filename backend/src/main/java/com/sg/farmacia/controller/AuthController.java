@@ -54,6 +54,7 @@ public class AuthController {
                 .nombre(usuario.getNombre())
                 .rol(usuario.getRol())
                 .activo(usuario.getActivo())
+                .modulosPermitidos(usuario.getModulosPermitidos())
                 .build();
 
         AuthResponseDTO responseDTO = AuthResponseDTO.builder()

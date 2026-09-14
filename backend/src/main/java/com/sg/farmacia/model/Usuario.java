@@ -43,6 +43,12 @@ public class Usuario {
     @Builder.Default
     private Boolean activo = true;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "usuario_modulos", joinColumns = @JoinColumn(name = "usuario_id"))
+    @Column(name = "modulo", length = 50)
+    @Builder.Default
+    private java.util.Set<String> modulosPermitidos = new java.util.HashSet<>();
+
     @Builder.Default
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

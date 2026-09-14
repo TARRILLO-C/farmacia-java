@@ -43,7 +43,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Endpoints Públicos de Autenticación
+                        // Preflight CORS para navegadores
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 1. Recursos Estáticos y Portal de Documentación
+                        .requestMatchers("/", "/index.html", "/favicon.ico", "/error", "/css/**", "/js/**", "/images/**").permitAll()
+
+                        // 2. Endpoints Públicos de Autenticación
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
                         // 2. Endpoints de Ventas, Recibos y Clientes (ADMIN y CAJERO)
@@ -62,7 +68,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/productos/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/categorias/**").hasRole("ADMIN")
 
-                        // 5. Cualquier otra solicitud requiere autenticación
+                        // 5. Gestión de Usuarios del Sistema (Exclusivo ADMIN)
+                        .requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
+
+                        // 6. Cualquier otra solicitud requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

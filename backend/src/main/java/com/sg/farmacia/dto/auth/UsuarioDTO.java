@@ -17,4 +17,5 @@ public class UsuarioDTO {
     private String nombre;
     private Role rol;
     private Boolean activo;
+    private java.util.Set<String> modulosPermitidos;
 }
