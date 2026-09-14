@@ -232,4 +232,50 @@ body {
   animation: drawer-slide-out-bottom 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Ocultar elementos generales de la app al imprimir */
+  header,
+  aside,
+  nav,
+  button,
+  .drawer-overlay,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Si está presente el ticket pos, ocultar todo lo demás */
+  body:has(#pos-ticket-imprimible) * {
+    visibility: hidden;
+  }
+
+  body:has(#pos-ticket-imprimible) #pos-ticket-imprimible,
+  body:has(#pos-ticket-imprimible) #pos-ticket-imprimible * {
+    visibility: visible !important;
+  }
+
+  #pos-ticket-imprimible {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 4mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
 

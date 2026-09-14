@@ -62,202 +62,11 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// Demo data de respaldo si la base de datos de Spring Boot está en proceso de carga
-const DEMO_PRODUCTOS_EXPIRING: Producto[] = [
-  {
-    id: 101,
-    codigo: '7750123450036',
-    nombre: 'Ibuprofeno 400mg',
-    principioActivo: 'Ibuprofeno',
-    presentacion: 'Caja x 50 Cápsulas Blandas',
-    laboratorio: 'Bayer Consumer',
-    lote: 'LT-2024-99',
-    fechaVencimiento: getRelativeDate(14), // Vence en 14 días (Crítico)
-    precio: 16.5,
-    stock: 24,
-    stockMinimo: 10,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 3,
-  },
-  {
-    id: 102,
-    codigo: '7750123450098',
-    nombre: 'Ceftriaxona 1g Inyectable',
-    principioActivo: 'Ceftriaxona Sódica',
-    presentacion: 'Frasco Ampolla + Diluyente',
-    laboratorio: 'Medifarma',
-    lote: 'LT-2024-12',
-    fechaVencimiento: getRelativeDate(28), // Vence en 28 días
-    precio: 24.0,
-    stock: 12,
-    stockMinimo: 15,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 2,
-  },
-  {
-    id: 103,
-    codigo: '7750123450145',
-    nombre: 'Salbutamol 100mcg Aerosol',
-    principioActivo: 'Salbutamol Sulfato',
-    presentacion: 'Inhalador 200 Dosis',
-    laboratorio: 'GlaxoSmithKline',
-    lote: 'LT-2024-54',
-    fechaVencimiento: getRelativeDate(45), // Vence en 45 días
-    precio: 35.8,
-    stock: 8,
-    stockMinimo: 10,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 7,
-  },
-  {
-    id: 104,
-    codigo: '7750123450189',
-    nombre: 'Complejo B Forte Jarabe',
-    principioActivo: 'Vitaminas B1, B6, B12',
-    presentacion: 'Frasco x 180 ml',
-    laboratorio: 'Laboratorios Bagó',
-    lote: 'LT-2024-33',
-    fechaVencimiento: getRelativeDate(62), // Vence en 62 días
-    precio: 29.5,
-    stock: 18,
-    stockMinimo: 12,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 6,
-  },
-  {
-    id: 105,
-    codigo: '7750123450043',
-    nombre: 'Loratadina 10mg',
-    principioActivo: 'Loratadina',
-    presentacion: 'Caja x 30 Tabletas',
-    laboratorio: 'Laboratorios Portugal',
-    lote: 'LT-2024-05',
-    fechaVencimiento: getRelativeDate(78), // Vence en 78 días
-    precio: 11.0,
-    stock: 6,
-    stockMinimo: 12,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 4,
-  },
-  {
-    id: 106,
-    codigo: '7750123450012',
-    nombre: 'Paracetamol 500mg Forte',
-    principioActivo: 'Paracetamol',
-    presentacion: 'Caja x 100 Tabletas',
-    laboratorio: 'Genfar',
-    lote: 'LT-2024-81',
-    fechaVencimiento: getRelativeDate(190), // Vence en 190 días
-    precio: 14.5,
-    stock: 145,
-    stockMinimo: 20,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 1,
-  },
-];
-
-const DEMO_RECENT_SALES: Venta[] = [
-  {
-    id: 104,
-    numeroVenta: 'REC-00104',
-    fecha: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    cliente: {
-      id: 1,
-      documentoIdentidad: '74218934',
-      nombre: 'Elena Rosa',
-      apellido: 'Mendoza Paredes',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: true,
-      activo: true,
-    },
-    usuarioId: 1,
-    detalles: [],
-    subtotal: 55.51,
-    descuentoTotal: 0,
-    impuesto: 9.99,
-    total: 65.5,
-    metodoPago: 'YAPE',
-    estado: 'COMPLETADA',
-  },
-  {
-    id: 103,
-    numeroVenta: 'REC-00103',
-    fecha: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    cliente: {
-      id: 2,
-      documentoIdentidad: '41982341',
-      nombre: 'Carlos Manuel',
-      apellido: 'Arroyo Vega',
-      tipoCliente: TipoCliente.REGULAR,
-      esClienteAmigo: true,
-      activo: true,
-    },
-    usuarioId: 1,
-    detalles: [],
-    subtotal: 105.08,
-    descuentoTotal: 0,
-    impuesto: 18.92,
-    total: 124.0,
-    metodoPago: 'TARJETA_DEBITO',
-    estado: 'COMPLETADA',
-  },
-  {
-    id: 102,
-    numeroVenta: 'REC-00102',
-    fecha: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    cliente: {
-      id: 4,
-      documentoIdentidad: '71920412',
-      nombre: 'Lucía Fernanda',
-      apellido: 'Sánchez Rios',
-      tipoCliente: TipoCliente.NUEVO,
-      esClienteAmigo: false,
-      activo: true,
-    },
-    usuarioId: 2,
-    detalles: [],
-    subtotal: 15.42,
-    descuentoTotal: 0,
-    impuesto: 2.78,
-    total: 18.2,
-    metodoPago: 'EFECTIVO',
-    estado: 'COMPLETADA',
-  },
-  {
-    id: 101,
-    numeroVenta: 'REC-00101',
-    fecha: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    cliente: {
-      id: 5,
-      documentoIdentidad: '09812456',
-      nombre: 'Donato Aurelio',
-      apellido: 'Quispe Vilca',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: true,
-      activo: true,
-    },
-    usuarioId: 1,
-    detalles: [],
-    subtotal: 76.19,
-    descuentoTotal: 5.0,
-    impuesto: 13.71,
-    total: 89.9,
-    metodoPago: 'EFECTIVO',
-    estado: 'COMPLETADA',
-  },
-];
-
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [productos, setProductos] = useState<Producto[]>(DEMO_PRODUCTOS_EXPIRING);
-  const [ventas, setVentas] = useState<Venta[]>(DEMO_RECENT_SALES);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [currentUser, setCurrentUser] = useState(getStoredUser());
 
@@ -275,17 +84,28 @@ export default function DashboardPage() {
         getClientes(),
       ]);
 
-      if (prodsRes.status === 'fulfilled' && prodsRes.value && prodsRes.value.length > 0) {
-        setProductos(prodsRes.value);
+      if (prodsRes.status === 'fulfilled') {
+        setProductos(Array.isArray(prodsRes.value) ? prodsRes.value : []);
+      } else {
+        setProductos([]);
       }
-      if (ventasRes.status === 'fulfilled' && ventasRes.value && ventasRes.value.length > 0) {
-        setVentas(ventasRes.value);
+
+      if (ventasRes.status === 'fulfilled') {
+        setVentas(Array.isArray(ventasRes.value) ? ventasRes.value : []);
+      } else {
+        setVentas([]);
       }
-      if (clientesRes.status === 'fulfilled' && clientesRes.value && clientesRes.value.length > 0) {
-        setClientes(clientesRes.value);
+
+      if (clientesRes.status === 'fulfilled') {
+        setClientes(Array.isArray(clientesRes.value) ? clientesRes.value : []);
+      } else {
+        setClientes([]);
       }
     } catch (err) {
-      console.warn('Usando datos demostrativos para el dashboard:', err);
+      console.warn('Error al cargar datos del dashboard:', err);
+      setProductos([]);
+      setVentas([]);
+      setClientes([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -325,14 +145,20 @@ export default function DashboardPage() {
 
   // 3. Cantidad de Clientes Amigos activos
   const clientesAmigosActivos = useMemo(() => {
-    if (clientes.length > 0) {
-      return clientes.filter(
-        (c) => (c.esClienteAmigo === true || c.tipoCliente === TipoCliente.BENEFICIARIO) && c.activo !== false
-      );
-    }
-    // Fallback de demostración si la tabla clientes aún no tiene registros
-    return 24;
+    return clientes.filter(
+      (c) => (c.esClienteAmigo === true || c.tipoCliente === TipoCliente.BENEFICIARIO) && c.activo !== false
+    ).length;
   }, [clientes]);
+
+  const totalPuntosClientes = useMemo(() => {
+    return clientes.reduce((acc, c) => acc + (Number(c.puntosFidelidad) || 0), 0);
+  }, [clientes]);
+
+  const porcentajeVentasConDescuento = useMemo(() => {
+    if (ventas.length === 0) return 0;
+    const ventasConDcto = ventas.filter((v) => (Number(v.descuentoTotal) || 0) > 0).length;
+    return Math.round((ventasConDcto / ventas.length) * 100);
+  }, [ventas]);
 
   const totalTicketsHoy = useMemo(() => {
     return ventas.filter((v) => v.estado !== 'ANULADA').length;
@@ -472,9 +298,7 @@ export default function DashboardPage() {
           <div className="mt-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-[#1a365d] tracking-tight">
-                {typeof clientesAmigosActivos === 'number'
-                  ? clientesAmigosActivos
-                  : clientesAmigosActivos.length}
+                {clientesAmigosActivos}
               </span>
               <span className="text-xs font-semibold text-slate-500">pacientes fidelizados</span>
             </div>
@@ -614,11 +438,11 @@ export default function DashboardPage() {
                     <TableCell colSpan={7} className="h-32 text-center text-slate-500">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                        <span className="text-sm font-semibold text-slate-700">
-                          No hay fármacos en riesgo de vencimiento en el periodo seleccionado.
+                        <span className="text-sm font-bold text-slate-700">
+                          Sin datos
                         </span>
                         <span className="text-xs text-slate-400">
-                          Todos los lotes en inventario cuentan con vida útil óptima.
+                          No hay fármacos en riesgo de vencimiento o no existen registros en inventario.
                         </span>
                       </div>
                     </TableCell>
@@ -775,39 +599,53 @@ export default function DashboardPage() {
               </TableHeader>
 
               <TableBody>
-                {ventas.slice(0, 4).map((sale) => {
-                  const clienteNombre = sale.cliente
-                    ? `${sale.cliente.nombre} ${sale.cliente.apellido || ''}`
-                    : 'Cliente Ocasional';
-                  const isBeneficiario =
-                    sale.cliente?.tipoCliente === TipoCliente.BENEFICIARIO ||
-                    sale.cliente?.esClienteAmigo;
+                {ventas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-28 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-1.5 py-4">
+                        <FileText className="w-7 h-7 text-slate-300" />
+                        <span className="text-sm font-bold text-slate-700">Sin datos</span>
+                        <span className="text-xs text-slate-400">
+                          No se registran transacciones de venta en el turno.
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  ventas.slice(0, 4).map((sale) => {
+                    const clienteNombre = sale.cliente
+                      ? `${sale.cliente.nombre} ${sale.cliente.apellido || ''}`
+                      : 'Cliente Ocasional';
+                    const isBeneficiario =
+                      sale.cliente?.tipoCliente === TipoCliente.BENEFICIARIO ||
+                      sale.cliente?.esClienteAmigo;
 
-                  return (
-                    <TableRow key={sale.id} className="hover:bg-slate-50/70">
-                      <TableCell className="font-semibold text-[#1a365d] font-mono text-xs">
-                        {sale.numeroVenta || `REC-${sale.id}`}
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-800 text-xs">
-                        {clienteNombre}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={isBeneficiario ? 'emerald' : 'blue'}
-                          className="text-[10px] py-0 font-semibold"
-                        >
-                          {isBeneficiario ? 'CLIENTE AMIGO' : 'REGULAR'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-500">
-                        {sale.metodoPago || 'EFECTIVO'}
-                      </TableCell>
-                      <TableCell className="text-right font-black text-slate-900 text-xs">
-                        {formatCurrency(Number(sale.total) || 0)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                    return (
+                      <TableRow key={sale.id} className="hover:bg-slate-50/70">
+                        <TableCell className="font-semibold text-[#1a365d] font-mono text-xs">
+                          {sale.numeroVenta || `REC-${sale.id}`}
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-800 text-xs">
+                          {clienteNombre}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={isBeneficiario ? 'emerald' : 'blue'}
+                            className="text-[10px] py-0 font-semibold"
+                          >
+                            {isBeneficiario ? 'CLIENTE AMIGO' : 'REGULAR'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-500">
+                          {sale.metodoPago || 'EFECTIVO'}
+                        </TableCell>
+                        <TableCell className="text-right font-black text-slate-900 text-xs">
+                          {formatCurrency(Number(sale.total) || 0)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -844,18 +682,16 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between py-1 border-b border-slate-100">
                 <span>Beneficiarios Activos</span>
                 <span className="font-bold text-slate-900">
-                  {typeof clientesAmigosActivos === 'number'
-                    ? clientesAmigosActivos
-                    : clientesAmigosActivos.length}
+                  {clientesAmigosActivos}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                <span>Puntos Canjeados este Mes</span>
-                <span className="font-bold text-[#319795]">1,420 pts</span>
+                <span>Total Puntos Acumulados</span>
+                <span className="font-bold text-[#319795]">{totalPuntosClientes} pts</span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span>Ventas Asociadas con Descuento</span>
-                <span className="font-bold text-emerald-600">68%</span>
+                <span>Ventas con Descuento</span>
+                <span className="font-bold text-emerald-600">{porcentajeVentasConDescuento}%</span>
               </div>
             </div>
           </CardContent>

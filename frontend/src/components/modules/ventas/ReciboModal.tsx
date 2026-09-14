@@ -45,27 +45,32 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
   };
 
   // Determinar datos del cliente
-  const clienteNombre = venta.cliente
-    ? `${venta.cliente.nombre} ${venta.cliente.apellido || ''}`.trim()
-    : venta.recibo?.clienteNombre || 'PÚBLICO GENERAL';
+  const clienteNombre =
+    venta.clienteNombre ||
+    (venta.cliente ? `${venta.cliente.nombre} ${venta.cliente.apellido || ''}`.trim() : '') ||
+    venta.recibo?.clienteNombre ||
+    'PÚBLICO GENERAL';
 
   const clienteDocumento =
+    venta.clienteDocumento ||
     venta.cliente?.documentoIdentidad ||
     venta.recibo?.clienteDocumento ||
     '00000000';
 
-  const esClienteAmigo = venta.cliente?.esClienteAmigo === true;
+  const esClienteAmigo = venta.esClienteAmigo ?? (venta.cliente?.esClienteAmigo === true);
 
   // Formato de comprobante
-  const tipoDoc = venta.recibo?.tipoComprobante || 'BOLETA DE VENTA';
+  const tipoDoc = (venta as any).tipoComprobante || venta.recibo?.tipoComprobante || 'BOLETA DE VENTA';
   const numeroComp =
+    venta.codigoComprobante ||
     venta.recibo?.numeroRecibo ||
     venta.numeroVenta ||
     `B001-${venta.id.toString().padStart(8, '0')}`;
 
   // Formato de fecha
-  const fechaFormatted = venta.fecha
-    ? new Date(venta.fecha).toLocaleString('es-PE', {
+  const fechaRaw = venta.fechaVenta || venta.fecha;
+  const fechaFormatted = fechaRaw
+    ? new Date(fechaRaw).toLocaleString('es-PE', {
         dateStyle: 'medium',
         timeStyle: 'short',
       })
@@ -203,8 +208,11 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
               {venta.detalles && venta.detalles.length > 0 ? (
                 venta.detalles.map((item, index) => {
                   const nombreProd =
-                    item.producto?.nombre || `Fármaco Código #${item.productoId}`;
-                  const itemTotal = item.subtotal ?? item.precioUnitario * item.cantidad;
+                    item.productoNombre ||
+                    item.producto?.nombre ||
+                    `Fármaco #${item.productoId}`;
+                  const itemTotal = item.subtotalItem ?? item.subtotal ?? ((item.precioUnitario || 0) * (item.cantidad || 1));
+                  const descuentoItem = Number(item.descuento || 0);
 
                   return (
                     <div key={index} className="flex justify-between items-start">
@@ -215,17 +223,17 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
                         <p className="text-slate-900 font-medium leading-tight">
                           {nombreProd}
                         </p>
-                        {item.descuento > 0 && (
+                        {descuentoItem > 0 && (
                           <span className="text-[9px] text-amber-600 block">
-                            Dcto: -S/. {item.descuento.toFixed(2)}
+                            Dcto: -S/. {descuentoItem.toFixed(2)}
                           </span>
                         )}
                       </div>
                       <span className="w-14 text-right text-slate-500">
-                        S/. {item.precioUnitario.toFixed(2)}
+                        S/. {Number(item.precioUnitario || 0).toFixed(2)}
                       </span>
                       <span className="w-16 text-right font-bold text-slate-900">
-                        S/. {itemTotal.toFixed(2)}
+                        S/. {Number(itemTotal).toFixed(2)}
                       </span>
                     </div>
                   );
@@ -244,22 +252,22 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
           <div className="space-y-1 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>OP. GRAVADA (SUBTOTAL):</span>
-              <span>S/. {venta.subtotal.toFixed(2)}</span>
+              <span>S/. {Number(venta.subtotal || 0).toFixed(2)}</span>
             </div>
 
-            {venta.descuentoTotal > 0 && (
+            {(venta.descuentoTotal || 0) > 0 && (
               <div className="flex justify-between text-amber-700 font-semibold">
                 <span className="flex items-center gap-1">
                   <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                   DESCUENTO CLIENTEAMIGO:
                 </span>
-                <span>-S/. {venta.descuentoTotal.toFixed(2)}</span>
+                <span>-S/. {Number(venta.descuentoTotal || 0).toFixed(2)}</span>
               </div>
             )}
 
             <div className="flex justify-between text-slate-500 text-[11px]">
               <span>I.G.V. (18% INCLUIDO):</span>
-              <span>S/. {venta.impuesto.toFixed(2)}</span>
+              <span>S/. {Number(venta.impuesto ?? venta.igv ?? 0).toFixed(2)}</span>
             </div>
 
             <Separator className="border-slate-300 my-1.5" />
@@ -267,14 +275,14 @@ export const ReciboModal: React.FC<ReciboModalProps> = ({
             <div className="flex justify-between items-baseline text-sm font-black text-slate-900 pt-0.5">
               <span>IMPORTE TOTAL:</span>
               <span className="text-base text-[#1a365d]">
-                S/. {venta.total.toFixed(2)}
+                S/. {Number(venta.total || 0).toFixed(2)}
               </span>
             </div>
 
             <div className="flex justify-between text-[11px] text-slate-500 pt-1">
               <span>FORMA DE PAGO:</span>
               <span className="font-bold text-slate-700 uppercase">
-                {venta.metodoPago.replace('_', ' ')}
+                {(venta.metodoPago || 'EFECTIVO').replace('_', ' ')}
               </span>
             </div>
           </div>

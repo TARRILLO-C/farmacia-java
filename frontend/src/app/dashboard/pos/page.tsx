@@ -55,157 +55,6 @@ interface CartItem {
   cantidad: number;
 }
 
-// Fallbacks de demostración si la API está desconectada
-const DEMO_PRODUCTOS: Producto[] = [
-  {
-    id: 1,
-    codigo: '7750123450012',
-    nombre: 'Paracetamol 500mg Forte',
-    principioActivo: 'Paracetamol',
-    presentacion: 'Caja x 100 Tabletas',
-    precio: 14.5,
-    stock: 145,
-    stockMinimo: 20,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 1,
-    categoria: { id: 1, nombre: 'Analgésicos' },
-  },
-  {
-    id: 2,
-    codigo: '7750123450029',
-    nombre: 'Amoxicilina + Ác. Clavulánico 500/125mg',
-    principioActivo: 'Amoxicilina / Clavulanato',
-    presentacion: 'Caja x 14 Tabletas Recubiertas',
-    precio: 32.0,
-    stock: 64,
-    stockMinimo: 15,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 2,
-    categoria: { id: 2, nombre: 'Antibióticos' },
-  },
-  {
-    id: 3,
-    codigo: '7750123450036',
-    nombre: 'Ibuprofeno 400mg',
-    principioActivo: 'Ibuprofeno',
-    presentacion: 'Caja x 50 Cápsulas Blandas',
-    precio: 16.5,
-    stock: 35,
-    stockMinimo: 10,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 1,
-    categoria: { id: 1, nombre: 'Analgésicos' },
-  },
-  {
-    id: 4,
-    codigo: '7750123450043',
-    nombre: 'Loratadina 10mg',
-    principioActivo: 'Loratadina',
-    presentacion: 'Caja x 30 Tabletas',
-    precio: 11.0,
-    stock: 8,
-    stockMinimo: 12,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 3,
-    categoria: { id: 3, nombre: 'Antihistamínicos' },
-  },
-  {
-    id: 5,
-    codigo: '7750123450050',
-    nombre: 'Azitromicina 500mg',
-    principioActivo: 'Azitromicina Dihidrato',
-    presentacion: 'Caja x 3 Tabletas',
-    precio: 22.5,
-    stock: 0, // Agotado
-    stockMinimo: 10,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 2,
-    categoria: { id: 2, nombre: 'Antibióticos' },
-  },
-  {
-    id: 6,
-    codigo: '7750123450067',
-    nombre: 'Omeprazol 20mg Cápsulas',
-    principioActivo: 'Omeprazol',
-    presentacion: 'Frasco x 30 Cápsulas',
-    precio: 15.0,
-    stock: 28,
-    stockMinimo: 10,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 4,
-    categoria: { id: 4, nombre: 'Gastrointestinales' },
-  },
-  {
-    id: 7,
-    codigo: '7750123450074',
-    nombre: 'Redoxon Vitamina C 1000mg',
-    principioActivo: 'Ácido Ascórbico',
-    presentacion: 'Tubo x 10 Tabletas Efervescentes',
-    precio: 24.0,
-    stock: 50,
-    stockMinimo: 15,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 5,
-    categoria: { id: 5, nombre: 'Vitaminas' },
-  },
-  {
-    id: 8,
-    codigo: '7750123450081',
-    nombre: 'Salbutamol Inhalador 100mcg',
-    principioActivo: 'Salbutamol Sulfato',
-    presentacion: 'Inhalador 200 dosis',
-    precio: 28.5,
-    stock: 18,
-    stockMinimo: 8,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 6,
-    categoria: { id: 6, nombre: 'Respiratorios' },
-  },
-];
-
-const DEMO_CLIENTES: Cliente[] = [
-  {
-    id: 1,
-    documentoIdentidad: '74218934',
-    tipoDocumento: 'DNI',
-    nombre: 'Elena Rosa',
-    apellido: 'Mendoza Paredes',
-    tipoCliente: TipoCliente.BENEFICIARIO,
-    esClienteAmigo: true,
-    codigoClienteAmigo: 'CA-48291',
-    activo: true,
-  },
-  {
-    id: 2,
-    documentoIdentidad: '41982341',
-    tipoDocumento: 'DNI',
-    nombre: 'Carlos Manuel',
-    apellido: 'Arroyo Vega',
-    tipoCliente: TipoCliente.REGULAR,
-    esClienteAmigo: true,
-    codigoClienteAmigo: 'CA-10294',
-    activo: true,
-  },
-  {
-    id: 3,
-    documentoIdentidad: '20608941234',
-    tipoDocumento: 'RUC',
-    nombre: 'Policlínico San Judas Tadeo SAC',
-    apellido: '',
-    tipoCliente: TipoCliente.BENEFICIARIO,
-    esClienteAmigo: false,
-    activo: true,
-  },
-];
-
 export default function PosPage() {
   // Catálogo y Búsqueda
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -238,19 +87,15 @@ export default function PosPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar catálogo de productos al montar
+  // Cargar catálogo de productos real al montar
   useEffect(() => {
     const load = async () => {
       setLoadingProds(true);
       try {
         const data = await getProductos();
-        if (data && data.length > 0) {
-          setProductos(data);
-        } else {
-          setProductos(DEMO_PRODUCTOS);
-        }
+        setProductos(Array.isArray(data) ? data : []);
       } catch {
-        setProductos(DEMO_PRODUCTOS);
+        setProductos([]);
       } finally {
         setLoadingProds(false);
       }
@@ -372,36 +217,15 @@ export default function PosPage() {
       // 1. Intentar API
       const clienteFound = await buscarClientePorDocumentoOCodigo(query);
       if (clienteFound) {
-        setSelectedCliente(clienteFound);
+        const singleCliente = Array.isArray(clienteFound) ? (clienteFound as any)[0] : clienteFound;
+        setSelectedCliente(singleCliente);
         setClientSearchTerm('');
         return;
       }
 
-      // 2. Fallback local demo
-      const localMatch = DEMO_CLIENTES.find(
-        (c) =>
-          c.documentoIdentidad.toLowerCase() === query.toLowerCase() ||
-          c.codigoClienteAmigo?.toLowerCase() === query.toLowerCase()
-      );
-
-      if (localMatch) {
-        setSelectedCliente(localMatch);
-        setClientSearchTerm('');
-      } else {
-        setClientSearchError(`No se encontró cliente con DNI/RUC o código "${query}".`);
-      }
+      setClientSearchError(`No se encontró ningún cliente registrado con documento o código "${query}".`);
     } catch {
-      const localMatch = DEMO_CLIENTES.find(
-        (c) =>
-          c.documentoIdentidad.toLowerCase() === query.toLowerCase() ||
-          c.codigoClienteAmigo?.toLowerCase() === query.toLowerCase()
-      );
-      if (localMatch) {
-        setSelectedCliente(localMatch);
-        setClientSearchTerm('');
-      } else {
-        setClientSearchError(`No se encontró cliente con documento "${query}".`);
-      }
+      setClientSearchError(`Error al consultar cliente con documento "${query}".`);
     } finally {
       setIsSearchingClient(false);
     }
@@ -462,11 +286,17 @@ export default function PosPage() {
     setIsProcessingSale(true);
 
     try {
-      const payload: CreateVentaDTO = {
-        clienteId: selectedCliente?.id,
+      const payload: any = {
+        clienteId: selectedCliente?.id || null,
+        numeroClienteAmigo: selectedCliente?.codigoClienteAmigo || selectedCliente?.numeroClienteAmigo || null,
+        requiereReceta: Boolean(requiereReceta || cartHasControlledMeds),
         usuarioId: 1, // ID del cajero/usuario actual
         metodoPago,
         tipoComprobante,
+        items: cart.map((item) => ({
+          productoId: item.producto.id,
+          cantidad: item.cantidad,
+        })),
         detalles: cart.map(
           (item): CreateDetalleVentaDTO => ({
             productoId: item.producto.id,
@@ -477,8 +307,8 @@ export default function PosPage() {
               : 0,
           })
         ),
-        observaciones: requiereReceta
-          ? `Dispensación bajo receta médica verificada para ${selectedCliente?.nombre} ${selectedCliente?.apellido}`
+        observaciones: (requiereReceta || cartHasControlledMeds)
+          ? `Dispensación bajo receta médica verificada para ${selectedCliente?.nombreCompleto || `${selectedCliente?.nombre || ''} ${selectedCliente?.apellido || ''}`.trim() || 'Cliente'}`
           : undefined,
       };
 
@@ -487,6 +317,8 @@ export default function PosPage() {
       let resultVenta: Venta;
       try {
         resultVenta = await postVenta(payload);
+        if (metodoPago) resultVenta.metodoPago = metodoPago;
+        if (tipoComprobante) resultVenta.tipoComprobante = tipoComprobante;
       } catch (apiErr) {
         console.warn('API postVenta() falló o no está conectada. Generando comprobante local:', apiErr);
         // Simulación local de Venta exitosa
@@ -543,7 +375,223 @@ export default function PosPage() {
   };
 
   const handlePrintReceipt = () => {
-    window.print();
+    if (!completedVenta) return;
+
+    const clienteName = completedVenta.clienteNombre ||
+      (completedVenta.cliente
+        ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido || ''}`.trim()
+        : 'PÚBLICO GENERAL');
+
+    const clienteDoc = completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad || '';
+    const numComprobante = completedVenta.numeroVenta || completedVenta.codigoComprobante || `VTA-${completedVenta.id}`;
+    const metodo = completedVenta.metodoPago || 'EFECTIVO';
+    const fechaHora = new Date().toLocaleString('es-PE');
+
+    const itemsHtml = (completedVenta.detalles || []).map((d: any) => {
+      const cant = d.cantidad || 1;
+      const nombre = d.productoNombre || d.producto?.nombre || `Fármaco #${d.productoId}`;
+      const precioUnit = Number(d.precioUnitario || 0).toFixed(2);
+      const sub = Number(d.subtotal ?? d.subtotalItem ?? (d.precioUnitario * d.cantidad || 0)).toFixed(2);
+      return `
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+          <span style="max-width: 65%; word-break: break-word;">${cant}x ${nombre} <span style="font-size: 9px; color: #555;">(S/. ${precioUnit})</span></span>
+          <span style="font-weight: 700; white-space: nowrap;">S/. ${sub}</span>
+        </div>
+      `;
+    }).join('');
+
+    const descTotal = Number(completedVenta.descuentoTotal || 0);
+    const subtotalCalc = Number(completedVenta.subtotal || (completedVenta.total - (completedVenta.impuesto ?? completedVenta.igv ?? 0) + descTotal));
+    const igvCalc = Number(completedVenta.impuesto ?? completedVenta.igv ?? 0);
+    const totalCalc = Number(completedVenta.total || 0);
+    const vueltoCalc = Number(completedVuelto || 0);
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Ticket - ${numComprobante}</title>
+          <style>
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace, system-ui, sans-serif;
+              width: 76mm;
+              max-width: 80mm;
+              margin: 0 auto;
+              padding: 8px 6px;
+              color: #000;
+              background: #fff;
+              font-size: 11px;
+              line-height: 1.3;
+            }
+            .text-center { text-align: center; }
+            .divider {
+              border-bottom: 1px dashed #000;
+              margin: 6px 0;
+            }
+            .header h1 {
+              font-size: 13px;
+              font-weight: 900;
+              letter-spacing: 0.5px;
+            }
+            .header p {
+              font-size: 10px;
+              color: #222;
+            }
+            .ticket-title {
+              font-size: 12px;
+              font-weight: 800;
+              margin: 4px 0 2px;
+            }
+            .info-table {
+              width: 100%;
+              font-size: 10.5px;
+              margin: 4px 0;
+            }
+            .info-table td {
+              vertical-align: top;
+              padding: 1px 0;
+            }
+            .totals-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              margin-bottom: 2px;
+            }
+            .grand-total {
+              font-size: 13px;
+              font-weight: 900;
+              border-top: 1px dashed #000;
+              padding-top: 4px;
+              margin-top: 4px;
+            }
+            .footer {
+              text-align: center;
+              font-size: 9.5px;
+              color: #333;
+              margin-top: 8px;
+              padding-top: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header text-center">
+            <h1>BOTICA & FARMACIA CENTRAL</h1>
+            <p>RUC: 20489123891</p>
+            <p>Av. Balta 1045 - Chiclayo, Lambayeque</p>
+            <p>Tel: (074) 234567 • Cel: 974839201</p>
+            <div class="divider"></div>
+            <div class="ticket-title">${tipoComprobante} ELECTRÓNICA</div>
+            <div style="font-weight: bold; font-size: 12px;">${numComprobante}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <table class="info-table">
+            <tr>
+              <td style="width: 70px; font-weight: bold;">Fecha:</td>
+              <td>${fechaHora}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Cliente:</td>
+              <td>${clienteName}</td>
+            </tr>
+            ${clienteDoc ? `<tr><td style="font-weight: bold;">Doc/DNI:</td><td>${clienteDoc}</td></tr>` : ''}
+            <tr>
+              <td style="font-weight: bold;">Med. Pago:</td>
+              <td>${metodo}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Caja:</td>
+              <td>Caja 01 - Principal</td>
+            </tr>
+          </table>
+
+          <div class="divider"></div>
+
+          <div style="font-weight: bold; font-size: 10px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>DESCRIPCIÓN / CANT.</span>
+            <span>TOTAL</span>
+          </div>
+
+          <div style="margin: 4px 0;">
+            ${itemsHtml}
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <div class="totals-row">
+              <span>Op. Gravada:</span>
+              <span>S/. ${subtotalCalc.toFixed(2)}</span>
+            </div>
+            ${descTotal > 0 ? `
+              <div class="totals-row" style="font-weight: 600;">
+                <span>Descuento ClienteAmigo:</span>
+                <span>-S/. ${descTotal.toFixed(2)}</span>
+              </div>
+            ` : ''}
+            <div class="totals-row">
+              <span>IGV (18%):</span>
+              <span>S/. ${igvCalc.toFixed(2)}</span>
+            </div>
+            <div class="totals-row grand-total">
+              <span>TOTAL PAGADO:</span>
+              <span>S/. ${totalCalc.toFixed(2)}</span>
+            </div>
+            ${vueltoCalc > 0 ? `
+              <div class="totals-row" style="font-weight: bold; margin-top: 3px;">
+                <span>Vuelto:</span>
+                <span>S/. ${vueltoCalc.toFixed(2)}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="footer text-center">
+            <p style="font-weight: bold;">¡GRACIAS POR SU PREFERENCIA!</p>
+            <p>Conserve este ticket ante cualquier reclamo.</p>
+            <p style="font-size: 8.5px; margin-top: 3px;">Representación impresa de Comprobante Electrónico</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    let iframe = document.getElementById('pos-thermal-print-frame') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'pos-thermal-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(printHtml);
+      doc.close();
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 250);
+    } else {
+      window.print();
+    }
   };
 
   return (
@@ -639,8 +687,14 @@ export default function PosPage() {
             {filteredProductos.length === 0 ? (
               <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                 <Pill className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-bold text-slate-700">No se encontraron fármacos</p>
-                <p className="text-xs text-slate-400">Pruebe ajustando el término de búsqueda.</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {searchTerm || selectedCategoria !== 'ALL' ? 'No se encontraron fármacos' : 'Sin datos'}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {searchTerm || selectedCategoria !== 'ALL'
+                    ? 'Pruebe ajustando el término de búsqueda o categoría.'
+                    : 'No hay fármacos disponibles en inventario para venta.'}
+                </p>
               </div>
             ) : (
               filteredProductos.map((prod) => {
@@ -782,17 +836,19 @@ export default function PosPage() {
                 <div className="p-2.5 rounded-xl bg-white border border-teal-200/80 shadow-2xs space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800">
-                      {selectedCliente.nombre} {selectedCliente.apellido}
+                      {selectedCliente.nombreCompleto ||
+                        `${selectedCliente.nombre || ''} ${selectedCliente.apellido || ''}`.trim() ||
+                        'Cliente Registrado'}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {selectedCliente.tipoDocumento || 'DOC'}: {selectedCliente.documentoIdentidad}
+                    <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                      {selectedCliente.tipoDocumento || (selectedCliente.documentoIdentidad?.length === 11 ? 'RUC' : 'DNI')}: {selectedCliente.documentoIdentidad || selectedCliente.dniRuc}
                     </span>
                   </div>
 
                   {selectedCliente.esClienteAmigo ? (
                     <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 p-1.5 rounded-lg border border-amber-200/80">
                       <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-                      <span>Beneficiario ClienteAmigo (5% Descuento Aplicado)</span>
+                      <span>Beneficiario ClienteAmigo ({selectedCliente.porcentajeDescuento || 5}% Descuento Aplicado)</span>
                     </div>
                   ) : (
                     <div className="text-[10px] text-slate-500 flex items-center gap-1">
@@ -1118,34 +1174,38 @@ export default function PosPage() {
         }
       >
         {completedVenta && (
-          <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-3 font-mono text-xs">
+          <div
+            id="pos-ticket-imprimible"
+            className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 font-mono text-xs shadow-xs text-slate-800"
+          >
             <div className="text-center pb-2 border-b border-dashed border-slate-300">
               <span className="font-bold text-sm text-slate-900 block font-sans">
                 BOTICA & FARMACIA CENTRAL
               </span>
               <span className="text-[10px] text-slate-500 block">RUC: 20489123891 • Chiclayo, Perú</span>
               <span className="text-xs font-bold text-[#1a365d] mt-1 block">
-                {tipoComprobante} ELECTRÓNICA: {completedVenta.numeroVenta}
+                {tipoComprobante} ELECTRÓNICA: {completedVenta.numeroVenta || completedVenta.codigoComprobante || `VTA-${completedVenta.id}`}
               </span>
             </div>
 
             <div className="text-[11px] space-y-0.5 text-slate-600">
               <div>
                 <b>Cliente:</b>{' '}
-                {completedVenta.cliente
-                  ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido}`
-                  : 'PÚBLICO GENERAL'}
+                {completedVenta.clienteNombre ||
+                  (completedVenta.cliente
+                    ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido || ''}`.trim()
+                    : 'PÚBLICO GENERAL')}
               </div>
-              {completedVenta.cliente?.documentoIdentidad && (
+              {(completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad) && (
                 <div>
-                  <b>Documento:</b> {completedVenta.cliente.documentoIdentidad}
+                  <b>Documento:</b> {completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad}
                 </div>
               )}
               <div>
-                <b>Fecha:</b> {new Date().toLocaleString()}
+                <b>Fecha:</b> {new Date().toLocaleString('es-PE')}
               </div>
               <div>
-                <b>Pago:</b> {completedVenta.metodoPago}
+                <b>Pago:</b> {completedVenta.metodoPago || 'EFECTIVO'}
               </div>
             </div>
 
@@ -1153,12 +1213,14 @@ export default function PosPage() {
 
             {/* Detalle de Ítems */}
             <div className="space-y-1 text-[11px]">
-              {completedVenta.detalles.map((d, i) => (
+              {(completedVenta.detalles || []).map((d: any, i: number) => (
                 <div key={i} className="flex justify-between">
                   <span className="truncate max-w-[200px]">
-                    {d.cantidad}x {d.producto?.nombre || `Fármaco #${d.productoId}`}
+                    {d.cantidad}x {d.productoNombre || d.producto?.nombre || `Fármaco #${d.productoId}`}
                   </span>
-                  <span>S/. {(d.precioUnitario * d.cantidad).toFixed(2)}</span>
+                  <span>
+                    S/. {Number(d.subtotal ?? d.subtotalItem ?? (d.precioUnitario * d.cantidad || 0)).toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1167,26 +1229,33 @@ export default function PosPage() {
 
             {/* Totales */}
             <div className="space-y-1 text-xs">
-              {completedVenta.descuentoTotal > 0 && (
+              {Number(completedVenta.descuentoTotal || 0) > 0 && (
                 <div className="flex justify-between text-amber-700">
                   <span>Descuento ClienteAmigo:</span>
-                  <span>-S/. {completedVenta.descuentoTotal.toFixed(2)}</span>
+                  <span>-S/. {Number(completedVenta.descuentoTotal || 0).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-500 text-[11px]">
                 <span>IGV (18%):</span>
-                <span>S/. {completedVenta.impuesto.toFixed(2)}</span>
+                <span>S/. {Number(completedVenta.impuesto ?? completedVenta.igv ?? 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-black text-sm text-slate-900 pt-1">
                 <span>TOTAL PAGADO:</span>
-                <span>S/. {completedVenta.total.toFixed(2)}</span>
+                <span>S/. {Number(completedVenta.total || 0).toFixed(2)}</span>
               </div>
-              {completedVuelto > 0 && (
+              {Number(completedVuelto || 0) > 0 && (
                 <div className="flex justify-between text-emerald-700 font-bold">
                   <span>Vuelto entregado:</span>
-                  <span>S/. {completedVuelto.toFixed(2)}</span>
+                  <span>S/. {Number(completedVuelto || 0).toFixed(2)}</span>
                 </div>
               )}
+            </div>
+
+            <Separator className="bg-slate-300 border-dashed" />
+
+            <div className="text-center text-[10px] text-slate-500 pt-0.5 space-y-0.5 font-sans">
+              <p className="font-bold text-slate-700">¡GRACIAS POR SU PREFERENCIA!</p>
+              <p className="text-[9px] text-slate-400">Conserve este comprobante para cualquier cambio o reclamo.</p>
             </div>
           </div>
         )}

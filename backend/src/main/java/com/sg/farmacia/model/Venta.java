@@ -47,6 +47,14 @@ public class Venta {
     @Builder.Default
     private boolean requiereReceta = false;
 
+    @Column(name = "metodo_pago", length = 50)
+    @Builder.Default
+    private String metodoPago = "EFECTIVO";
+
+    @Column(name = "tipo_comprobante", length = 50)
+    @Builder.Default
+    private String tipoComprobante = "BOLETA";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = true)
     private Cliente cliente;

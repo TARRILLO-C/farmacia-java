@@ -20,7 +20,16 @@ public class VentaRequestDTO {
 
     private String numeroClienteAmigo;
 
-    private boolean requiereReceta;
+    @Builder.Default
+    private Boolean requiereReceta = false;
+
+    private String metodoPago;
+
+    private String tipoComprobante;
+
+    public boolean isRequiereReceta() {
+        return Boolean.TRUE.equals(this.requiereReceta);
+    }
 
     @NotEmpty(message = "La lista de items no puede estar vacía")
     @Valid

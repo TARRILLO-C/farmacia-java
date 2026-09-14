@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
+import RoleGuard from '@/components/auth/RoleGuard';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -48,177 +49,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-// Demo data representativa para farmacias
-const DEMO_CATEGORIAS: Categoria[] = [
-  { id: 1, nombre: 'Analgésicos y Antipiréticos', activo: true },
-  { id: 2, nombre: 'Antibióticos y Antimicrobianos', activo: true },
-  { id: 3, nombre: 'Antiinflamatorios (AINEs)', activo: true },
-  { id: 4, nombre: 'Antihistamínicos', activo: true },
-  { id: 5, nombre: 'Gastrointestinales', activo: true },
-  { id: 6, nombre: 'Suplementos y Vitaminas', activo: true },
-  { id: 7, nombre: 'Respiratorios y Antitusígenos', activo: true },
-];
-
-// Generar fecha dinámica para pruebas de vencimiento
-const getDynamicDate = (daysOffset: number): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + daysOffset);
-  return d.toISOString().split('T')[0];
-};
-
-const DEMO_PRODUCTOS: Producto[] = [
-  {
-    id: 1,
-    codigo: '7750123450012',
-    nombre: 'Paracetamol 500mg Forte',
-    principioActivo: 'Paracetamol',
-    presentacion: 'Caja x 100 Tabletas',
-    laboratorio: 'Laboratorios Genfar',
-    lote: 'LT-2024-81',
-    fechaVencimiento: getDynamicDate(240), // Vence en 8 meses -> OK (Verde)
-    precioCompra: 8.2,
-    precio: 14.5,
-    stock: 145,
-    stockMinimo: 20,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 1,
-    categoria: DEMO_CATEGORIAS[0],
-  },
-  {
-    id: 2,
-    codigo: '7750123450029',
-    nombre: 'Amoxicilina + Ácido Clavulánico 500/125mg',
-    principioActivo: 'Amoxicilina / Clavulanato',
-    presentacion: 'Caja x 14 Tabletas Recubiertas',
-    laboratorio: 'Medifarma',
-    lote: 'LT-2024-45',
-    fechaVencimiento: getDynamicDate(180), // Vence en 6 meses -> OK (Verde)
-    precioCompra: 18.5,
-    precio: 32.0,
-    stock: 64,
-    stockMinimo: 15,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 2,
-    categoria: DEMO_CATEGORIAS[1],
-  },
-  {
-    id: 3,
-    codigo: '7750123450036',
-    nombre: 'Ibuprofeno 400mg',
-    principioActivo: 'Ibuprofeno',
-    presentacion: 'Caja x 50 Cápsulas Blandas',
-    laboratorio: 'Bayer Consumer',
-    lote: 'LT-2023-99',
-    fechaVencimiento: getDynamicDate(18), // Vence en 18 días -> Próximo a vencer (Amarillo)
-    precioCompra: 9.0,
-    precio: 16.5,
-    stock: 35,
-    stockMinimo: 10,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 3,
-    categoria: DEMO_CATEGORIAS[2],
-  },
-  {
-    id: 4,
-    codigo: '7750123450043',
-    nombre: 'Loratadina 10mg',
-    principioActivo: 'Loratadina',
-    presentacion: 'Caja x 30 Tabletas',
-    laboratorio: 'Portugal',
-    lote: 'LT-2024-12',
-    fechaVencimiento: getDynamicDate(300),
-    precioCompra: 5.4,
-    precio: 11.0,
-    stock: 6, // Stock bajo <= stockMinimo -> Advertencia (Amarillo)
-    stockMinimo: 12,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 4,
-    categoria: DEMO_CATEGORIAS[3],
-  },
-  {
-    id: 5,
-    codigo: '7750123450050',
-    nombre: 'Azitromicina 500mg',
-    principioActivo: 'Azitromicina Dihidrato',
-    presentacion: 'Caja x 3 Tabletas',
-    laboratorio: 'Genfar',
-    lote: 'LT-2024-33',
-    fechaVencimiento: getDynamicDate(150),
-    precioCompra: 12.0,
-    precio: 22.5,
-    stock: 0, // Stock agotado -> Agotado (Rojo)
-    stockMinimo: 10,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 2,
-    categoria: DEMO_CATEGORIAS[1],
-  },
-  {
-    id: 6,
-    codigo: '7750123450067',
-    nombre: 'Omeprazol 20mg Cápsulas',
-    principioActivo: 'Omeprazol',
-    presentacion: 'Frasco x 30 Cápsulas',
-    laboratorio: 'AC Farma',
-    lote: 'LT-2023-11',
-    fechaVencimiento: getDynamicDate(-12), // Vencido hace 12 días -> Vencido (Rojo)
-    precioCompra: 7.5,
-    precio: 15.0,
-    stock: 18,
-    stockMinimo: 10,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 5,
-    categoria: DEMO_CATEGORIAS[4],
-  },
-  {
-    id: 7,
-    codigo: '7750123450074',
-    nombre: 'Redoxon Vitamina C 1000mg Efervescente',
-    principioActivo: 'Ácido Ascórbico',
-    presentacion: 'Tubo x 10 Tabletas Efervescentes',
-    laboratorio: 'Bayer',
-    lote: 'LT-2024-60',
-    fechaVencimiento: getDynamicDate(400),
-    precioCompra: 14.2,
-    precio: 24.0,
-    stock: 50,
-    stockMinimo: 15,
-    requiereReceta: false,
-    activo: true,
-    categoriaId: 6,
-    categoria: DEMO_CATEGORIAS[5],
-  },
-  {
-    id: 8,
-    codigo: '7750123450081',
-    nombre: 'Salbutamol Inhalador 100mcg',
-    principioActivo: 'Salbutamol Sulfato',
-    presentacion: 'Inhalador 200 dosis',
-    laboratorio: 'GlaxoSmithKline',
-    lote: 'LT-2024-77',
-    fechaVencimiento: getDynamicDate(210),
-    precioCompra: 16.0,
-    precio: 28.5,
-    stock: 22,
-    stockMinimo: 8,
-    requiereReceta: true,
-    activo: true,
-    categoriaId: 7,
-    categoria: DEMO_CATEGORIAS[6],
-  },
-];
-
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUsingDemo, setIsUsingDemo] = useState(false);
 
   // Filtros combinados
   const [searchTerm, setSearchTerm] = useState('');
@@ -242,36 +77,22 @@ export default function ProductosPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Cargar datos (Productos y Categorías)
+  // Cargar datos reales (Productos y Categorías)
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [prodsData, catsData] = await Promise.all([
-        getProductos().catch(() => null),
-        getCategoriasParaSelector().catch(() => null),
+        getProductos().catch(() => []),
+        getCategoriasParaSelector().catch(() => []),
       ]);
 
-      // Resolver Categorías
-      if (catsData && catsData.length > 0) {
-        setCategorias(catsData);
-      } else {
-        setCategorias(DEMO_CATEGORIAS);
-      }
-
-      // Resolver Productos
-      if (prodsData && prodsData.length > 0) {
-        setProductos(prodsData);
-        setIsUsingDemo(false);
-      } else {
-        setProductos(DEMO_PRODUCTOS);
-        setIsUsingDemo(true);
-      }
-    } catch (err) {
-      console.warn('Backend no disponible, usando catálogo de demostración:', err);
-      setProductos(DEMO_PRODUCTOS);
-      setCategorias(DEMO_CATEGORIAS);
-      setIsUsingDemo(true);
+      setCategorias(Array.isArray(catsData) ? catsData : []);
+      setProductos(Array.isArray(prodsData) ? prodsData : []);
+    } catch {
+      setError('No se pudo conectar con el servidor.');
+      setProductos([]);
+      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -433,7 +254,8 @@ export default function ProductosPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <RoleGuard allowedRoles={['ADMIN']}>
+      <div className="space-y-6 pb-12">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -458,14 +280,12 @@ export default function ProductosPage() {
         </div>
       )}
 
-      {/* Acciones y Badge inyectados en la cabecera superior */}
-      {isUsingDemo && (
-        <HeaderBadge>
-          <Badge variant="amber" className="text-[10px] uppercase font-bold">
-            Modo Demostración
-          </Badge>
-        </HeaderBadge>
-      )}
+      {/* Badge de cantidad */}
+      <HeaderBadge>
+        <Badge variant="teal" className="text-[10px] font-bold">
+          {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
+        </Badge>
+      </HeaderBadge>
 
       <HeaderActions>
         <Button
@@ -491,6 +311,21 @@ export default function ProductosPage() {
           <span>Nuevo Producto</span>
         </Button>
       </HeaderActions>
+
+      {error && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchData}
+            className="text-rose-800 underline font-semibold hover:text-rose-950 shrink-0 cursor-pointer"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Tarjetas Resumen / KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -649,11 +484,15 @@ export default function ProductosPage() {
                     <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
                       <Archive className="w-8 h-8" />
                     </div>
-                    <p className="text-sm font-bold text-slate-700">No se encontraron productos</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {searchTerm || selectedCategoria !== 'ALL' || selectedEstado !== 'ALL'
+                        ? 'No se encontraron productos'
+                        : 'Sin datos'}
+                    </p>
                     <p className="text-xs text-slate-400">
                       {searchTerm || selectedCategoria !== 'ALL' || selectedEstado !== 'ALL'
                         ? 'Pruebe ajustando o limpiando los filtros de búsqueda aplicados.'
-                        : 'No hay fármacos registrados en el catálogo. Haga click en "Nuevo Producto" para comenzar.'}
+                        : 'No hay fármacos registrados en el catálogo.'}
                     </p>
                   </div>
                 </TableCell>
@@ -858,6 +697,7 @@ export default function ProductosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RoleGuard>
   );
 }

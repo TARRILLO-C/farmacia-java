@@ -140,6 +140,13 @@ public class VentaServiceImpl implements VentaService {
             }
         }
 
+        String metodoPago = (dto.getMetodoPago() != null && !dto.getMetodoPago().isBlank())
+                ? dto.getMetodoPago().trim().toUpperCase()
+                : "EFECTIVO";
+        String tipoComprobante = (dto.getTipoComprobante() != null && !dto.getTipoComprobante().isBlank())
+                ? dto.getTipoComprobante().trim().toUpperCase()
+                : "BOLETA";
+
         // 7. Crear y persistir la Venta junto a sus Detalles
         Venta venta = Venta.builder()
                 .fechaVenta(LocalDateTime.now())
@@ -148,6 +155,8 @@ public class VentaServiceImpl implements VentaService {
                 .descuentoTotal(descuentoTotal)
                 .total(total)
                 .requiereReceta(requiereRecetaFinal)
+                .metodoPago(metodoPago)
+                .tipoComprobante(tipoComprobante)
                 .cliente(cliente)
                 .detalles(new ArrayList<>())
                 .build();
@@ -197,6 +206,15 @@ public class VentaServiceImpl implements VentaService {
         log.info("Consultando historial de ventas. Desde: {}, Hasta: {}, DNI: {}", desde, hasta, dni);
 
         return ventaRepository.buscarHistorial(desde, hasta, dni).stream()
+                .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> listarPorClienteId(Long clienteId) {
+        log.info("Consultando historial de compras para cliente ID: {}", clienteId);
+        return ventaRepository.findByClienteId(clienteId).stream()
                 .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
                 .collect(Collectors.toList());
     }
@@ -275,6 +293,8 @@ public class VentaServiceImpl implements VentaService {
                 .esClienteAmigo(esAmigo)
                 .reciboId(venta.getRecibo() != null ? venta.getRecibo().getId() : null)
                 .codigoComprobante(venta.getRecibo() != null ? venta.getRecibo().getCodigoComprobante() : null)
+                .metodoPago(venta.getMetodoPago() != null ? venta.getMetodoPago() : "EFECTIVO")
+                .tipoComprobante(venta.getTipoComprobante() != null ? venta.getTipoComprobante() : "BOLETA")
                 .detalles(detallesDTO)
                 .build();
     }

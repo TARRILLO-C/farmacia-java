@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
+import RoleGuard from '@/components/auth/RoleGuard';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -41,56 +42,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-const DEMO_CATEGORIAS: Categoria[] = [
-  {
-    id: 1,
-    nombre: 'Analgésicos y Antipiréticos',
-    descripcion: 'Alivio del dolor de diversa etiología y reducción del cuadro febril',
-    activo: true,
-    cantidadProductos: 28,
-  },
-  {
-    id: 2,
-    nombre: 'Antibióticos y Antimicrobianos',
-    descripcion: 'Tratamiento de infecciones bacterianas de venta bajo receta médica',
-    activo: true,
-    cantidadProductos: 19,
-  },
-  {
-    id: 3,
-    nombre: 'Antiinflamatorios No Esteroideos (AINEs)',
-    descripcion: 'Control de procesos inflamatorios, dolores musculares y articulares',
-    activo: true,
-    cantidadProductos: 24,
-  },
-  {
-    id: 4,
-    nombre: 'Antihistamínicos y Antialérgicos',
-    descripcion: 'Alivio sintomático de alergias estacionales, rinitis y prurito',
-    activo: true,
-    cantidadProductos: 15,
-  },
-  {
-    id: 5,
-    nombre: 'Suplementos y Vitaminas',
-    descripcion: 'Complejos vitamínicos, minerales y estimulantes inmunitarios',
-    activo: true,
-    cantidadProductos: 32,
-  },
-  {
-    id: 6,
-    nombre: 'Gastrointestinales y Antiácidos',
-    descripcion: 'Protectores gástricos, antiácidos y reguladores de la motilidad',
-    activo: false,
-    cantidadProductos: 11,
-  },
-];
-
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUsingDemo, setIsUsingDemo] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,17 +69,10 @@ export default function CategoriasPage() {
     setError(null);
     try {
       const data = await getCategorias();
-      if (data && data.length > 0) {
-        setCategorias(data);
-        setIsUsingDemo(false);
-      } else {
-        setCategorias(DEMO_CATEGORIAS);
-        setIsUsingDemo(true);
-      }
+      setCategorias(Array.isArray(data) ? data : []);
     } catch {
-      setError('Servidor Spring Boot desconectado. Visualizando datos de muestra.');
-      setCategorias(DEMO_CATEGORIAS);
-      setIsUsingDemo(true);
+      setError('No se pudo conectar con el servidor.');
+      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -171,15 +119,10 @@ export default function CategoriasPage() {
 
     setIsDeleting(true);
     try {
-      if (!isUsingDemo) {
-        await deleteCategoria(categoriaToDelete.id);
-      } else {
-        setCategorias((prev) => prev.filter((c) => c.id !== categoriaToDelete.id));
-      }
-
+      await deleteCategoria(categoriaToDelete.id);
       showToast('success', `Categoría "${categoriaToDelete.nombre}" eliminada.`);
       setCategoriaToDelete(null);
-      if (!isUsingDemo) fetchCategorias();
+      fetchCategorias();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -191,7 +134,8 @@ export default function CategoriasPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <RoleGuard allowedRoles={['ADMIN']}>
+      <div className="space-y-6">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -242,19 +186,17 @@ export default function CategoriasPage() {
         </Button>
       </HeaderActions>
 
-      {isUsingDemo && (
-        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
+      {error && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              <strong>Aviso:</strong> {error || 'Servidor desconectado. Visualizando datos locales de demostración.'}
-            </span>
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
           </div>
           <button
             onClick={fetchCategorias}
-            className="text-amber-800 underline font-semibold hover:text-amber-950 shrink-0"
+            className="text-rose-800 underline font-semibold hover:text-rose-950 shrink-0"
           >
-            Reconectar
+            Reintentar
           </button>
         </div>
       )}
@@ -292,7 +234,7 @@ export default function CategoriasPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-20">ID</TableHead>
+              {/* <TableHead className="w-20">ID</TableHead> */}
               <TableHead>Nombre de Categoría</TableHead>
               <TableHead>Descripción</TableHead>
               <TableHead className="text-center">Fármacos Asociados</TableHead>
@@ -320,9 +262,13 @@ export default function CategoriasPage() {
                     <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
                       <Layers className="w-8 h-8" />
                     </div>
-                    <p className="text-sm font-bold text-slate-700">No se encontraron categorías</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {searchTerm ? 'No se encontraron resultados' : 'Sin datos'}
+                    </p>
                     <p className="text-xs text-slate-400">
-                      {searchTerm ? 'No hay coincidencias para el término ingresado.' : 'No hay categorías registradas.'}
+                      {searchTerm
+                        ? 'No hay coincidencias para el término ingresado.'
+                        : 'No hay categorías registradas en el sistema.'}
                     </p>
                   </div>
                 </TableCell>
@@ -330,9 +276,9 @@ export default function CategoriasPage() {
             ) : (
               filteredCategorias.map((cat) => (
                 <TableRow key={cat.id} className="group">
-                  <TableCell className="font-mono font-bold text-slate-500">
+                  {/* <TableCell className="font-mono font-bold text-slate-500">
                     #{cat.id.toString().padStart(3, '0')}
-                  </TableCell>
+                  </TableCell> */}
 
                   <TableCell>
                     <div className="flex items-center gap-2.5">
@@ -454,6 +400,7 @@ export default function CategoriasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RoleGuard>
   );
 }

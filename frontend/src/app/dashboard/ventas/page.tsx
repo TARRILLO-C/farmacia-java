@@ -18,6 +18,7 @@ import {
   Star,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   Clock,
   Ban,
   X,
@@ -48,359 +49,10 @@ import {
   TableCell,
 } from '@/components/ui/table';
 
-// Datos de demostración enriquecidos
-const DEMO_VENTAS: Venta[] = [
-  {
-    id: 104,
-    numeroVenta: 'REC-00104',
-    fecha: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // Hace 35 min
-    clienteId: 1,
-    cliente: {
-      id: 1,
-      documentoIdentidad: '74218934',
-      nombre: 'Maria',
-      apellido: 'Condori Quispe',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: true,
-      codigoClienteAmigo: 'CA-48291',
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 68.95,
-    descuentoTotal: 3.45,
-    impuesto: 9.99,
-    total: 65.5,
-    metodoPago: 'YAPE',
-    estado: 'COMPLETADA',
-    recibo: {
-      id: 104,
-      numeroRecibo: 'B001-0004812',
-      tipoComprobante: 'BOLETA',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 68.95,
-      montoDescuento: 3.45,
-      montoImpuesto: 9.99,
-      montoTotal: 65.5,
-      metodoPago: 'YAPE',
-      ventaId: 104,
-      clienteNombre: 'Maria Condori Quispe',
-      clienteDocumento: '74218934',
-    },
-    detalles: [
-      {
-        id: 1,
-        productoId: 1,
-        producto: { id: 1, nombre: 'Paracetamol 500mg Forte', precio: 14.5 } as any,
-        cantidad: 2,
-        precioUnitario: 14.5,
-        descuento: 1.45,
-        subtotal: 27.55,
-      },
-      {
-        id: 2,
-        productoId: 3,
-        producto: { id: 3, nombre: 'Ibuprofeno 400mg', precio: 16.5 } as any,
-        cantidad: 2,
-        precioUnitario: 16.5,
-        descuento: 1.65,
-        subtotal: 31.35,
-      },
-      {
-        id: 3,
-        productoId: 4,
-        producto: { id: 4, nombre: 'Loratadina 10mg', precio: 11.0 } as any,
-        cantidad: 1,
-        precioUnitario: 11.0,
-        descuento: 0.55,
-        subtotal: 10.45,
-      },
-    ],
-  },
-  {
-    id: 103,
-    numeroVenta: 'REC-00103',
-    fecha: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    clienteId: 2,
-    cliente: {
-      id: 2,
-      documentoIdentidad: '41982341',
-      nombre: 'Juan Carlos',
-      apellido: 'Mendoza',
-      tipoCliente: TipoCliente.REGULAR,
-      esClienteAmigo: true,
-      codigoClienteAmigo: 'CA-10294',
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 130.5,
-    descuentoTotal: 6.5,
-    impuesto: 18.91,
-    total: 124.0,
-    metodoPago: 'TARJETA_DEBITO',
-    estado: 'COMPLETADA',
-    recibo: {
-      id: 103,
-      numeroRecibo: 'B001-0004811',
-      tipoComprobante: 'BOLETA',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 130.5,
-      montoDescuento: 6.5,
-      montoImpuesto: 18.91,
-      montoTotal: 124.0,
-      metodoPago: 'TARJETA_DEBITO',
-      ventaId: 103,
-      clienteNombre: 'Juan Carlos Mendoza',
-      clienteDocumento: '41982341',
-    },
-    detalles: [
-      {
-        id: 4,
-        productoId: 2,
-        producto: { id: 2, nombre: 'Amoxicilina + Ác. Clavulánico 500/125mg', precio: 32.0 } as any,
-        cantidad: 3,
-        precioUnitario: 32.0,
-        descuento: 4.8,
-        subtotal: 91.2,
-      },
-      {
-        id: 5,
-        productoId: 7,
-        producto: { id: 7, nombre: 'Redoxon Vitamina C 1000mg', precio: 24.0 } as any,
-        cantidad: 1,
-        precioUnitario: 24.0,
-        descuento: 1.2,
-        subtotal: 22.8,
-      },
-    ],
-  },
-  {
-    id: 102,
-    numeroVenta: 'REC-00102',
-    fecha: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    clienteId: 4,
-    cliente: {
-      id: 4,
-      documentoIdentidad: '71920412',
-      nombre: 'Lucia',
-      apellido: 'Sanchez R.',
-      tipoCliente: TipoCliente.NUEVO,
-      esClienteAmigo: false,
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 18.2,
-    descuentoTotal: 0,
-    impuesto: 2.78,
-    total: 18.2,
-    metodoPago: 'EFECTIVO',
-    estado: 'COMPLETADA',
-    recibo: {
-      id: 102,
-      numeroRecibo: 'T001-0008412',
-      tipoComprobante: 'TICKET',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 18.2,
-      montoDescuento: 0,
-      montoImpuesto: 2.78,
-      montoTotal: 18.2,
-      metodoPago: 'EFECTIVO',
-      ventaId: 102,
-      clienteNombre: 'Lucia Sanchez R.',
-      clienteDocumento: '71920412',
-    },
-    detalles: [
-      {
-        id: 6,
-        productoId: 3,
-        producto: { id: 3, nombre: 'Ibuprofeno 400mg', precio: 16.5 } as any,
-        cantidad: 1,
-        precioUnitario: 16.5,
-        descuento: 0,
-        subtotal: 16.5,
-      },
-    ],
-  },
-  {
-    id: 101,
-    numeroVenta: 'REC-00101',
-    fecha: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    clienteId: 5,
-    cliente: {
-      id: 5,
-      documentoIdentidad: '40192834',
-      nombre: 'Pedro',
-      apellido: 'Torres Gomez',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: true,
-      codigoClienteAmigo: 'CA-20184',
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 94.63,
-    descuentoTotal: 4.73,
-    impuesto: 13.71,
-    total: 89.9,
-    metodoPago: 'EFECTIVO',
-    estado: 'COMPLETADA',
-    recibo: {
-      id: 101,
-      numeroRecibo: 'B001-0004810',
-      tipoComprobante: 'BOLETA',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 94.63,
-      montoDescuento: 4.73,
-      montoImpuesto: 13.71,
-      montoTotal: 89.9,
-      metodoPago: 'EFECTIVO',
-      ventaId: 101,
-      clienteNombre: 'Pedro Torres Gomez',
-      clienteDocumento: '40192834',
-    },
-    detalles: [
-      {
-        id: 7,
-        productoId: 8,
-        producto: { id: 8, nombre: 'Salbutamol Inhalador 100mcg', precio: 28.5 } as any,
-        cantidad: 2,
-        precioUnitario: 28.5,
-        descuento: 2.85,
-        subtotal: 54.15,
-      },
-      {
-        id: 8,
-        productoId: 6,
-        producto: { id: 6, nombre: 'Omeprazol 20mg Cápsulas', precio: 15.0 } as any,
-        cantidad: 2,
-        precioUnitario: 15.0,
-        descuento: 1.5,
-        subtotal: 28.5,
-      },
-    ],
-  },
-  {
-    id: 100,
-    numeroVenta: 'REC-00100',
-    fecha: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    clienteId: 3,
-    cliente: {
-      id: 3,
-      documentoIdentidad: '20608941234',
-      nombre: 'Policlínico San Judas Tadeo SAC',
-      apellido: '',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: false,
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 450.0,
-    descuentoTotal: 0,
-    impuesto: 68.64,
-    total: 450.0,
-    metodoPago: 'TRANSFERENCIA',
-    estado: 'COMPLETADA',
-    recibo: {
-      id: 100,
-      numeroRecibo: 'F001-0000941',
-      tipoComprobante: 'FACTURA',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 450.0,
-      montoDescuento: 0,
-      montoImpuesto: 68.64,
-      montoTotal: 450.0,
-      metodoPago: 'TRANSFERENCIA',
-      ventaId: 100,
-      clienteNombre: 'Policlínico San Judas Tadeo SAC',
-      clienteDocumento: '20608941234',
-    },
-    detalles: [
-      {
-        id: 9,
-        productoId: 1,
-        producto: { id: 1, nombre: 'Paracetamol 500mg Forte', precio: 14.5 } as any,
-        cantidad: 20,
-        precioUnitario: 14.5,
-        descuento: 0,
-        subtotal: 290.0,
-      },
-      {
-        id: 10,
-        productoId: 3,
-        producto: { id: 3, nombre: 'Ibuprofeno 400mg', precio: 16.5 } as any,
-        cantidad: 10,
-        precioUnitario: 16.5,
-        descuento: 0,
-        subtotal: 165.0,
-      },
-    ],
-  },
-  {
-    id: 99,
-    numeroVenta: 'REC-00099',
-    fecha: new Date(Date.now() - 1000 * 60 * 420).toISOString(),
-    clienteId: 2,
-    cliente: {
-      id: 2,
-      documentoIdentidad: '41982341',
-      nombre: 'Carlos Manuel',
-      apellido: 'Arroyo Vega',
-      tipoCliente: TipoCliente.REGULAR,
-      esClienteAmigo: true,
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 42.0,
-    descuentoTotal: 2.1,
-    impuesto: 6.41,
-    total: 42.0,
-    metodoPago: 'YAPE',
-    estado: 'ANULADA',
-    recibo: {
-      id: 99,
-      numeroRecibo: 'B001-0004809',
-      tipoComprobante: 'BOLETA',
-      fechaEmision: new Date().toISOString(),
-      montoSubtotal: 42.0,
-      montoDescuento: 2.1,
-      montoImpuesto: 6.41,
-      montoTotal: 42.0,
-      metodoPago: 'YAPE',
-      ventaId: 99,
-      clienteNombre: 'Carlos Manuel Arroyo Vega',
-      clienteDocumento: '41982341',
-    },
-    detalles: [],
-    observaciones: 'Anulado por cambio de producto solicitado por el cliente',
-  },
-  {
-    id: 98,
-    numeroVenta: 'REC-00098',
-    fecha: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(), // Ayer
-    clienteId: 1,
-    cliente: {
-      id: 1,
-      documentoIdentidad: '74218934',
-      nombre: 'Elena Rosa',
-      apellido: 'Mendoza Paredes',
-      tipoCliente: TipoCliente.BENEFICIARIO,
-      esClienteAmigo: true,
-      codigoClienteAmigo: 'CA-48291',
-      activo: true,
-    },
-    usuarioId: 1,
-    subtotal: 100.0,
-    descuentoTotal: 5.0,
-    impuesto: 14.49,
-    total: 95.0,
-    metodoPago: 'TARJETA_CREDITO',
-    estado: 'COMPLETADA',
-    detalles: [],
-  },
-];
-
 export default function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isUsingDemo, setIsUsingDemo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -412,21 +64,16 @@ export default function VentasPage() {
   const [selectedVentaForReceipt, setSelectedVentaForReceipt] = useState<Venta | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
-  // Cargar ventas desde API o Demo
+  // Cargar ventas reales desde API
   const fetchVentasData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getVentas();
-      if (data && data.length > 0) {
-        setVentas(data);
-        setIsUsingDemo(false);
-      } else {
-        setVentas(DEMO_VENTAS);
-        setIsUsingDemo(true);
-      }
+      setVentas(Array.isArray(data) ? data : []);
     } catch {
-      setVentas(DEMO_VENTAS);
-      setIsUsingDemo(true);
+      setError('No se pudo conectar con el servidor.');
+      setVentas([]);
     } finally {
       setLoading(false);
     }
@@ -441,31 +88,31 @@ export default function VentasPage() {
     return ventas.filter((v) => {
       // 1. Búsqueda por N° Venta, Comprobante o Cliente
       const term = searchTerm.toLowerCase().trim();
+      const numVenta = (v.numeroVenta || v.codigoComprobante || `VTA-${v.id}`).toLowerCase();
+      const numRecibo = (v.recibo?.numeroRecibo || v.recibo?.codigoComprobante || '').toLowerCase();
+      const cliNombre = (v.clienteNombre || (v.cliente ? `${v.cliente.nombre} ${v.cliente.apellido || ''}` : '') || v.recibo?.clienteNombre || '').toLowerCase();
+      const cliDoc = v.clienteDocumento || v.cliente?.documentoIdentidad || v.recibo?.clienteDocumento || '';
+
       const matchSearch =
         !term ||
-        v.numeroVenta.toLowerCase().includes(term) ||
-        (v.recibo?.numeroRecibo && v.recibo.numeroRecibo.toLowerCase().includes(term)) ||
-        (v.cliente &&
-          `${v.cliente.nombre} ${v.cliente.apellido}`.toLowerCase().includes(term)) ||
-        (v.cliente?.documentoIdentidad &&
-          v.cliente.documentoIdentidad.includes(term)) ||
-        (v.recibo?.clienteNombre &&
-          v.recibo.clienteNombre.toLowerCase().includes(term));
+        numVenta.includes(term) ||
+        numRecibo.includes(term) ||
+        cliNombre.includes(term) ||
+        cliDoc.includes(term);
 
       // 2. Filtro por Estado
+      const estadoActual = v.estado || 'COMPLETADA';
       const matchEstado =
-        selectedEstado === 'ALL' || v.estado === selectedEstado;
+        selectedEstado === 'ALL' || estadoActual === selectedEstado;
 
       // 3. Filtro por Rango de Fechas
       let matchFecha = true;
-      if (v.fecha) {
-        const ventaDateStr = v.fecha.split('T')[0]; // YYYY-MM-DD
-        if (fechaInicio && ventaDateStr < fechaInicio) {
-          matchFecha = false;
-        }
-        if (fechaFin && ventaDateStr > fechaFin) {
-          matchFecha = false;
-        }
+      const fechaVentaStr = (v.fechaVenta || v.fecha || '').split('T')[0];
+      if (fechaInicio && fechaVentaStr && fechaVentaStr < fechaInicio) {
+        matchFecha = false;
+      }
+      if (fechaFin && fechaVentaStr && fechaVentaStr > fechaFin) {
+        matchFecha = false;
       }
 
       return matchSearch && matchEstado && matchFecha;
@@ -536,13 +183,11 @@ export default function VentasPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Badge y Acciones inyectadas en la cabecera superior */}
-      {isUsingDemo && (
-        <HeaderBadge>
-          <Badge variant="teal" className="text-[10px] uppercase font-bold">
-            Modo Demo
-          </Badge>
-        </HeaderBadge>
-      )}
+      <HeaderBadge>
+        <Badge variant="teal" className="text-[10px] font-bold">
+          {ventas.length} {ventas.length === 1 ? 'venta' : 'ventas'}
+        </Badge>
+      </HeaderBadge>
 
       <HeaderActions>
         <Button
@@ -566,6 +211,21 @@ export default function VentasPage() {
           </Button>
         </Link>
       </HeaderActions>
+
+      {error && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchVentasData}
+            className="text-rose-800 underline font-semibold hover:text-rose-950 shrink-0 cursor-pointer"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Tarjetas Resumen / KPIs de Ventas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -746,33 +406,46 @@ export default function VentasPage() {
                     <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
                       <Receipt className="w-8 h-8" />
                     </div>
-                    <p className="text-sm font-bold text-slate-700">No se encontraron ventas</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {searchTerm || selectedEstado !== 'ALL' || fechaInicio || fechaFin
+                        ? 'No se encontraron ventas'
+                        : 'Sin datos'}
+                    </p>
                     <p className="text-xs text-slate-400">
-                      Pruebe ajustando o limpiando los filtros de fecha y búsqueda aplicados.
+                      {searchTerm || selectedEstado !== 'ALL' || fechaInicio || fechaFin
+                        ? 'Pruebe ajustando o limpiando los filtros de fecha y búsqueda aplicados.'
+                        : 'No hay ventas registradas en el sistema.'}
                     </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               filteredVentas.map((venta) => {
-                const { fecha, hora } = formatDateTime(venta.fecha);
-                const clienteLabel = venta.cliente
-                  ? `${venta.cliente.nombre} ${venta.cliente.apellido || ''}`.trim()
-                  : venta.recibo?.clienteNombre || 'PÚBLICO GENERAL';
+                const fechaRaw = venta.fechaVenta || venta.fecha || '';
+                const { fecha, hora } = formatDateTime(fechaRaw);
+                const clienteLabel =
+                  venta.clienteNombre ||
+                  (venta.cliente
+                    ? `${venta.cliente.nombre} ${venta.cliente.apellido || ''}`.trim()
+                    : venta.recibo?.clienteNombre || 'PÚBLICO GENERAL');
 
-                const esClienteAmigo = venta.cliente?.esClienteAmigo === true;
-                const tipoComp = venta.recibo?.tipoComprobante || 'BOLETA';
+                const esClienteAmigo = venta.esClienteAmigo ?? (venta.cliente?.esClienteAmigo === true);
+                const tipoComp = (venta as any).tipoComprobante || venta.recibo?.tipoComprobante || 'BOLETA';
+                const numVentaDisplay = venta.codigoComprobante || venta.numeroVenta || `VTA-${String(venta.id).padStart(5, '0')}`;
+                const metodoPagoVal = venta.metodoPago || 'EFECTIVO';
+                const estadoVal = venta.estado || 'COMPLETADA';
+                const totalVal = Number(venta.total || 0);
 
                 return (
                   <TableRow key={venta.id} className="group">
                     {/* N° Venta / Recibo */}
                     <TableCell>
                       <span className="font-mono font-bold text-[#1a365d] text-xs">
-                        {venta.numeroVenta}
+                        {numVentaDisplay}
                       </span>
-                      {venta.recibo?.numeroRecibo && (
+                      {(venta.recibo?.numeroRecibo || (venta.recibo?.codigoComprobante && venta.recibo.codigoComprobante !== numVentaDisplay)) && (
                         <span className="text-[10px] text-slate-400 block font-mono">
-                          {venta.recibo.numeroRecibo}
+                          {venta.recibo.numeroRecibo || venta.recibo.codigoComprobante}
                         </span>
                       )}
                     </TableCell>
@@ -802,9 +475,9 @@ export default function VentasPage() {
                             </span>
                           )}
                         </div>
-                        {venta.cliente?.documentoIdentidad && (
+                        {(venta.clienteDocumento || venta.cliente?.documentoIdentidad) && (
                           <span className="text-[10px] text-slate-400 font-mono">
-                            Doc: {venta.cliente.documentoIdentidad}
+                            Doc: {venta.clienteDocumento || venta.cliente?.documentoIdentidad}
                           </span>
                         )}
                       </div>
@@ -820,8 +493,8 @@ export default function VentasPage() {
                     {/* Método de Pago */}
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
-                        {renderMetodoPagoIcon(venta.metodoPago)}
-                        <span>{venta.metodoPago.replace('_', ' ')}</span>
+                        {renderMetodoPagoIcon(metodoPagoVal)}
+                        <span>{metodoPagoVal.replace('_', ' ')}</span>
                       </div>
                     </TableCell>
 
@@ -829,21 +502,21 @@ export default function VentasPage() {
                     <TableCell className="text-center">
                       <Badge
                         variant={
-                          venta.estado === 'COMPLETADA'
+                          estadoVal === 'COMPLETADA'
                             ? 'emerald'
-                            : venta.estado === 'PENDIENTE'
+                            : estadoVal === 'PENDIENTE'
                             ? 'amber'
                             : 'destructive'
                         }
                         className="text-[10px] px-2.5 py-0.5"
                       >
-                        {venta.estado}
+                        {estadoVal}
                       </Badge>
                     </TableCell>
 
                     {/* Total en Soles */}
                     <TableCell className="text-right font-mono text-sm font-bold text-slate-900">
-                      S/. {venta.total.toFixed(2)}
+                      S/. {totalVal.toFixed(2)}
                     </TableCell>
 
                     {/* Acción: Botón Ver Recibo */}

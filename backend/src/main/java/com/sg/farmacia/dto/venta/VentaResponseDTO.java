@@ -27,5 +27,7 @@ public class VentaResponseDTO {
     private boolean esClienteAmigo;
     private Long reciboId;
     private String codigoComprobante;
+    private String metodoPago;
+    private String tipoComprobante;
     private List<DetalleVentaResponseDTO> detalles;
 }

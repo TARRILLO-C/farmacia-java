@@ -17,19 +17,35 @@ export type RolUsuario = 'ADMIN' | 'FARMACEUTICO' | 'CAJERO';
 export interface Usuario {
   id: number;
   nombre: string;
-  apellido: string;
+  apellido?: string;
   username: string;
-  email: string;
+  email?: string;
   rol: RolUsuario;
   activo: boolean;
+  modulosPermitidos?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
 
+export interface CreateUsuarioDTO {
+  username: string;
+  password?: string;
+  nombre: string;
+  rol: RolUsuario;
+  activo?: boolean;
+  modulosPermitidos?: string[];
+}
+
+export type UpdateUsuarioDTO = Partial<CreateUsuarioDTO>;
+
 export interface AuthResponse {
   token: string;
   type?: string;
-  usuario: Usuario;
+  username?: string;
+  nombre?: string;
+  rol?: string;
+  modulosPermitidos?: string[];
+  usuario?: Usuario;
 }
 
 export interface LoginCredentials {
@@ -91,15 +107,19 @@ export type UpdateProductoDTO = Partial<CreateProductoDTO>;
 export interface Cliente {
   id: number;
   documentoIdentidad: string; // DNI, RUC, Pasaporte
+  dniRuc?: string;
   tipoDocumento?: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE';
   nombre: string;
   apellido: string;
+  nombreCompleto?: string;
   email?: string;
   telefono?: string;
   direccion?: string;
   tipoCliente: TipoCliente;
   esClienteAmigo?: boolean;
   codigoClienteAmigo?: string;
+  numeroClienteAmigo?: string;
+  porcentajeDescuento?: number;
   puntosFidelidad?: number;
   totalCompras?: number;
   montoTotalComprado?: number;
@@ -119,11 +139,14 @@ export interface DetalleVenta {
   id?: number;
   ventaId?: number;
   productoId: number;
+  productoNombre?: string;
+  codigoBarras?: string;
   producto?: Producto;
   cantidad: number;
   precioUnitario: number;
-  descuento: number;
-  subtotal: number;
+  descuento?: number;
+  subtotal?: number;
+  subtotalItem?: number;
 }
 
 export interface CreateDetalleVentaDTO {
@@ -143,6 +166,7 @@ export type MetodoPago = 'EFECTIVO' | 'TARJETA_DEBITO' | 'TARJETA_CREDITO' | 'TR
 export interface Recibo {
   id: number;
   numeroRecibo: string;
+  codigoComprobante?: string;
   serie?: string;
   correlativo?: string;
   tipoComprobante: TipoComprobante;
@@ -168,19 +192,28 @@ export type EstadoVenta = 'COMPLETADA' | 'PENDIENTE' | 'ANULADA';
 
 export interface Venta {
   id: number;
-  numeroVenta: string;
-  fecha: string;
+  numeroVenta?: string;
+  codigoComprobante?: string;
+  fecha?: string;
+  fechaVenta?: string;
   clienteId?: number;
+  clienteNombre?: string;
+  clienteDocumento?: string;
+  esClienteAmigo?: boolean;
   cliente?: Cliente;
-  usuarioId: number;
+  usuarioId?: number;
   usuario?: Usuario;
   detalles: DetalleVenta[];
   subtotal: number;
   descuentoTotal: number;
-  impuesto: number;
+  igv?: number;
+  impuesto?: number;
   total: number;
-  metodoPago: MetodoPago;
-  estado: EstadoVenta;
+  requiereReceta?: boolean;
+  metodoPago?: MetodoPago;
+  tipoComprobante?: TipoComprobante | string;
+  estado?: EstadoVenta;
+  reciboId?: number;
   recibo?: Recibo;
   observaciones?: string;
   createdAt?: string;

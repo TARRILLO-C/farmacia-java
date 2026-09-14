@@ -13,5 +13,7 @@ public interface VentaService {
 
     List<VentaResponseDTO> listarHistorial(java.time.LocalDate fechaInicio, java.time.LocalDate fechaFin, String dniCliente);
 
+    List<VentaResponseDTO> listarPorClienteId(Long clienteId);
+
     VentaResponseDTO obtenerPorId(Long id);
 }
