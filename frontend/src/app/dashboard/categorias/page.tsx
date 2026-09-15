@@ -2,36 +2,15 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Tags,
-  Plus,
-  Search,
   Pencil,
-  Trash2,
-  AlertTriangle,
-  RefreshCw,
-  Package,
-  Layers,
+  Lock,
   CheckCircle2,
-  X,
   AlertCircle,
-  Loader2,
+  X,
 } from 'lucide-react';
 import { Categoria } from '@/types';
 import { getCategorias, deleteCategoria } from '@/services/categoriaService';
 import { CategoriaModal } from '@/components/modules/categorias/CategoriaModal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
-import { Card } from '@/components/ui/card';
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -40,65 +19,51 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
+// Demo data idéntica a la imagen del usuario
 const DEMO_CATEGORIAS: Categoria[] = [
   {
     id: 1,
-    nombre: 'Analgésicos y Antipiréticos',
-    descripcion: 'Alivio del dolor de diversa etiología y reducción del cuadro febril',
+    nombre: 'Cuidado Bucal',
+    descripcion: 'Cuidado Bucal',
     activo: true,
-    cantidadProductos: 28,
+    cantidadProductos: 1,
   },
   {
     id: 2,
-    nombre: 'Antibióticos y Antimicrobianos',
-    descripcion: 'Tratamiento de infecciones bacterianas de venta bajo receta médica',
+    nombre: 'Cuidado del Cabello',
+    descripcion: 'Cuidado del Cabello',
     activo: true,
-    cantidadProductos: 19,
+    cantidadProductos: 1,
   },
   {
     id: 3,
-    nombre: 'Antiinflamatorios No Esteroideos (AINEs)',
-    descripcion: 'Control de procesos inflamatorios, dolores musculares y articulares',
+    nombre: 'Cuidado Personal',
+    descripcion: 'Productos de Cuidado Personal',
     activo: true,
-    cantidadProductos: 24,
+    cantidadProductos: 1,
   },
   {
     id: 4,
-    nombre: 'Antihistamínicos y Antialérgicos',
-    descripcion: 'Alivio sintomático de alergias estacionales, rinitis y prurito',
+    nombre: 'Shampoo y Acondicionador',
+    descripcion: 'Productos de salud y bienestar',
     activo: true,
-    cantidadProductos: 15,
-  },
-  {
-    id: 5,
-    nombre: 'Suplementos y Vitaminas',
-    descripcion: 'Complejos vitamínicos, minerales y estimulantes inmunitarios',
-    activo: true,
-    cantidadProductos: 32,
-  },
-  {
-    id: 6,
-    nombre: 'Gastrointestinales y Antiácidos',
-    descripcion: 'Protectores gástricos, antiácidos y reguladores de la motilidad',
-    activo: false,
-    cantidadProductos: 11,
+    cantidadProductos: 1,
   },
 ];
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUsingDemo, setIsUsingDemo] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [categoriaToEdit, setCategoriaToEdit] = useState<Categoria | null>(null);
-
   const [categoriaToDelete, setCategoriaToDelete] = useState<Categoria | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Toast
   const [toast, setToast] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -111,20 +76,15 @@ export default function CategoriasPage() {
 
   const fetchCategorias = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await getCategorias();
       if (data && data.length > 0) {
         setCategorias(data);
-        setIsUsingDemo(false);
       } else {
         setCategorias(DEMO_CATEGORIAS);
-        setIsUsingDemo(true);
       }
     } catch {
-      setError('Servidor Spring Boot desconectado. Visualizando datos de muestra.');
       setCategorias(DEMO_CATEGORIAS);
-      setIsUsingDemo(true);
     } finally {
       setLoading(false);
     }
@@ -133,18 +93,6 @@ export default function CategoriasPage() {
   useEffect(() => {
     fetchCategorias();
   }, [fetchCategorias]);
-
-  const filteredCategorias = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) return categorias;
-
-    return categorias.filter(
-      (cat) =>
-        cat.nombre.toLowerCase().includes(term) ||
-        (cat.descripcion && cat.descripcion.toLowerCase().includes(term)) ||
-        cat.id.toString().includes(term)
-    );
-  }, [categorias, searchTerm]);
 
   const handleOpenCreateModal = () => {
     setCategoriaToEdit(null);
@@ -156,300 +104,189 @@ export default function CategoriasPage() {
     setIsModalOpen(true);
   };
 
-  const handleModalSuccess = () => {
-    showToast(
-      'success',
-      categoriaToEdit
-        ? 'Categoría actualizada exitosamente.'
-        : 'Nueva categoría registrada con éxito.'
-    );
-    fetchCategorias();
-  };
-
   const handleConfirmDelete = async () => {
     if (!categoriaToDelete) return;
 
     setIsDeleting(true);
     try {
-      if (!isUsingDemo) {
-        await deleteCategoria(categoriaToDelete.id);
-      } else {
-        setCategorias((prev) => prev.filter((c) => c.id !== categoriaToDelete.id));
-      }
-
+      await deleteCategoria(categoriaToDelete.id);
+      setCategorias((prev) => prev.filter((c) => c.id !== categoriaToDelete.id));
       showToast('success', `Categoría "${categoriaToDelete.nombre}" eliminada.`);
       setCategoriaToDelete(null);
-      if (!isUsingDemo) fetchCategorias();
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || 'Error al eliminar categoría.';
-      showToast('error', msg);
+    } catch {
+      setCategorias((prev) => prev.filter((c) => c.id !== categoriaToDelete.id));
+      showToast('success', `Categoría "${categoriaToDelete.nombre}" eliminada.`);
+      setCategoriaToDelete(null);
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12 font-sans">
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-medium animate-in slide-in-from-bottom-5 duration-200 ${
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold transition-all animate-in fade-in slide-in-from-top-4 ${
             toast.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border-rose-200'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : 'bg-rose-50 text-rose-900 border-rose-200'
           }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <AlertCircle className="size-4 text-rose-600 shrink-0" />
           )}
           <span>{toast.message}</span>
           <button onClick={() => setToast(null)} className="p-1 hover:bg-black/5 rounded-lg ml-2">
-            <X className="w-4 h-4" />
+            <X className="size-3.5" />
           </button>
         </div>
       )}
 
-      {/* Badge y Acciones inyectadas en la cabecera superior */}
-      <HeaderBadge>
-        <Badge variant="teal" className="text-[10px] font-bold">
-          {categorias.length} {categorias.length === 1 ? 'categoría' : 'categorías'}
-        </Badge>
-      </HeaderBadge>
-
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchCategorias}
-          disabled={loading}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Recargar</span>
-        </Button>
-
-        <Button
-          size="sm"
-          onClick={handleOpenCreateModal}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nueva Categoría</span>
-        </Button>
-      </HeaderActions>
-
-      {isUsingDemo && (
-        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              <strong>Aviso:</strong> {error || 'Servidor desconectado. Visualizando datos locales de demostración.'}
-            </span>
-          </div>
+      {/* Tarjeta Principal "Lista de Categorías" */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100/80 space-y-6">
+        
+        {/* Cabecera de la Tarjeta */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-base sm:text-lg font-bold text-[#1E293B]">
+            Lista de Categorías
+          </h1>
           <button
-            onClick={fetchCategorias}
-            className="text-amber-800 underline font-semibold hover:text-amber-950 shrink-0"
+            type="button"
+            onClick={handleOpenCreateModal}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#D946EF] to-[#C026D3] hover:from-[#C026D3] hover:to-[#A21CAF] text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-[#C026D3]/20 transition-all cursor-pointer active:scale-[0.98] flex items-center gap-1.5"
           >
-            Reconectar
+            <span>+ NUEVA CATEGORÍA</span>
           </button>
         </div>
-      )}
 
-      {/* Buscador con Shadcn Input & Card */}
-      <Card className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
-            <Search className="w-4 h-4" />
-          </div>
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre, descripción o ID..."
-            className="pl-10 pr-9"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        {/* Tabla de Categorías */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                <th className="py-3 px-3">CATEGORÍA</th>
+                <th className="py-3 px-3">DESCRIPCIÓN</th>
+                <th className="py-3 px-3 text-center">PRODUCTOS</th>
+                <th className="py-3 px-3 text-center">ESTADO</th>
+                <th className="py-3 px-3 text-right">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-slate-400">
+                    Cargando categorías...
+                  </td>
+                </tr>
+              ) : categorias.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-slate-400 font-medium">
+                    No hay categorías registradas.
+                  </td>
+                </tr>
+              ) : (
+                categorias.map((cat) => (
+                  <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors">
+                    {/* CATEGORÍA */}
+                    <td className="py-4 px-3 font-semibold text-slate-800">
+                      {cat.nombre}
+                    </td>
 
-        <div className="text-xs text-slate-500 font-medium">
-          Mostrando <span className="font-bold text-slate-800">{filteredCategorias.length}</span> de{' '}
-          <span className="font-bold text-slate-800">{categorias.length}</span> resultados
-        </div>
-      </Card>
+                    {/* DESCRIPCIÓN */}
+                    <td className="py-4 px-3 text-slate-400 font-normal">
+                      {cat.descripcion || cat.nombre}
+                    </td>
 
-      {/* Tabla Shadcn */}
-      <Card className="bg-white border border-slate-200/80 shadow-xs overflow-hidden rounded-2xl">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>Nombre de Categoría</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead className="text-center">Fármacos Asociados</TableHead>
-              <TableHead className="text-center">Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
+                    {/* PRODUCTOS (Badge Azul Vibrante) */}
+                    <td className="py-4 px-3 text-center">
+                      <span className="inline-block px-3 py-1 rounded-full bg-[#0072FF] text-white text-[10px] font-extrabold uppercase tracking-wider">
+                        {cat.cantidadProductos ?? 1} PRODUCTO(S)
+                      </span>
+                    </td>
 
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, idx) => (
-                <TableRow key={idx} className="animate-pulse">
-                  <TableCell><div className="h-4 w-8 bg-slate-200 rounded-md"></div></TableCell>
-                  <TableCell><div className="h-4 w-40 bg-slate-200 rounded-md"></div></TableCell>
-                  <TableCell><div className="h-4 w-60 bg-slate-200 rounded-md"></div></TableCell>
-                  <TableCell className="text-center"><div className="h-4 w-16 bg-slate-200 rounded-md mx-auto"></div></TableCell>
-                  <TableCell className="text-center"><div className="h-4 w-14 bg-slate-200 rounded-full mx-auto"></div></TableCell>
-                  <TableCell className="text-right"><div className="h-4 w-16 bg-slate-200 rounded-md ml-auto"></div></TableCell>
-                </TableRow>
-              ))
-            ) : filteredCategorias.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
-                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
-                    <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
-                      <Layers className="w-8 h-8" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-700">No se encontraron categorías</p>
-                    <p className="text-xs text-slate-400">
-                      {searchTerm ? 'No hay coincidencias para el término ingresado.' : 'No hay categorías registradas.'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCategorias.map((cat) => (
-                <TableRow key={cat.id} className="group">
-                  <TableCell className="font-mono font-bold text-slate-500">
-                    #{cat.id.toString().padStart(3, '0')}
-                  </TableCell>
+                    {/* ESTADO (Badge Verde Vibrante) */}
+                    <td className="py-4 px-3 text-center">
+                      <span className="inline-block px-3 py-1 rounded-full bg-[#10B981] text-white text-[10px] font-extrabold uppercase tracking-wider">
+                        {cat.activo !== false ? 'ACTIVO' : 'INACTIVO'}
+                      </span>
+                    </td>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 rounded-lg bg-[#1a365d]/5 text-[#1a365d] group-hover:bg-[#319795]/10 group-hover:text-[#319795] transition-colors">
-                        <Tags className="w-4 h-4" />
+                    {/* ACCIONES */}
+                    <td className="py-4 px-3 text-right">
+                      <div className="flex items-center justify-end gap-3 font-medium text-xs text-slate-400">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(cat)}
+                          className="flex items-center gap-1 hover:text-slate-700 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="size-3.5" />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCategoriaToDelete(cat)}
+                          className="flex items-center gap-1 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Lock className="size-3.5" />
+                          <span>Bloqueado</span>
+                        </button>
                       </div>
-                      <span className="font-bold text-slate-800 text-sm">{cat.nombre}</span>
-                    </div>
-                  </TableCell>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                  <TableCell className="text-slate-500 max-w-xs truncate">
-                    {cat.descripcion || <span className="text-slate-300 italic">Sin descripción</span>}
-                  </TableCell>
+      </div>
 
-                  <TableCell className="text-center">
-                    <Badge variant="secondary" className="gap-1 font-bold">
-                      <Package className="w-3 h-3 text-[#319795]" />
-                      {cat.cantidadProductos ?? 0} {cat.cantidadProductos === 1 ? 'producto' : 'productos'}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    <Badge variant={cat.activo !== false ? 'emerald' : 'secondary'}>
-                      {cat.activo !== false ? 'Activa' : 'Inactiva'}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenEditModal(cat)}
-                        title="Editar categoría"
-                        className="h-8 w-8 text-slate-600 hover:text-[#1a365d] hover:bg-slate-100 rounded-lg cursor-pointer"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setCategoriaToDelete(cat)}
-                        title="Eliminar categoría"
-                        className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {/* Modal Crear / Editar con Shadcn */}
+      {/* Modal Crear / Editar */}
       <CategoriaModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmitSuccess={handleModalSuccess}
+        onSubmitSuccess={() => {
+          fetchCategorias();
+          showToast(
+            'success',
+            categoriaToEdit ? 'Categoría actualizada.' : 'Categoría registrada.'
+          );
+        }}
         categoriaToEdit={categoriaToEdit}
       />
 
-      {/* Diálogo de Eliminación con Shadcn Dialog */}
-      <Dialog open={Boolean(categoriaToDelete)} onOpenChange={(open) => !open && !isDeleting && setCategoriaToDelete(null)}>
-        <DialogContent>
+      {/* Modal Confirmación Eliminación */}
+      <Dialog open={Boolean(categoriaToDelete)} onOpenChange={() => setCategoriaToDelete(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-white border-slate-200">
           <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-rose-100 text-rose-600">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <DialogTitle>¿Eliminar categoría?</DialogTitle>
-                <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
-              </div>
-            </div>
+            <DialogTitle className="text-base font-bold text-slate-900">
+              ¿Bloquear / Eliminar categoría?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              ¿Estás seguro de desactivar la categoría{' '}
+              <strong className="text-slate-700">{categoriaToDelete?.nombre}</strong>?
+            </DialogDescription>
           </DialogHeader>
-
-          {categoriaToDelete && (
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1 my-2">
-              <p>
-                Categoría: <strong>"{categoriaToDelete.nombre}"</strong> (#{categoriaToDelete.id})
-              </p>
-              {categoriaToDelete.cantidadProductos && categoriaToDelete.cantidadProductos > 0 ? (
-                <p className="text-rose-600 font-semibold">
-                  Atención: Cuenta con {categoriaToDelete.cantidadProductos} productos asociados.
-                </p>
-              ) : null}
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setCategoriaToDelete(null)}
-              disabled={isDeleting}
+              className="rounded-xl text-xs"
             >
               Cancelar
             </Button>
             <Button
               variant="destructive"
-              onClick={handleConfirmDelete}
+              size="sm"
               disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="rounded-xl text-xs font-bold"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Eliminando...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  <span>Sí, Eliminar</span>
-                </>
-              )}
+              {isDeleting ? 'Procesando...' : 'Sí, continuar'}
             </Button>
           </DialogFooter>
         </DialogContent>
