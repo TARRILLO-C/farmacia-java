@@ -70,7 +70,7 @@ const gestionItems: NavItem[] = [
   },
   {
     title: 'Proveedores',
-    href: '/dashboard/reportes', // or proveedores route if created
+    href: '/dashboard/proveedores',
     icon: Truck,
   },
   {
