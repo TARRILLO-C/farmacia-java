@@ -122,7 +122,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
   const handleLogout = () => {
     removeAuthToken();
-    router.push('/login');
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      document.cookie = 'sgf_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      window.location.href = '/login';
+    }
   };
 
   // Determinar título del módulo activo
