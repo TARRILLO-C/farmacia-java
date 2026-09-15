@@ -43,8 +43,8 @@ public class DataSeeder implements CommandLineRunner {
 
         // Seed Clientes por defecto
         if (clienteRepository.count() == 0) {
-            clienteRepository.save(Cliente.builder().documentoIdentidad("74218934").tipoDocumento("DNI").nombre("Elena").apellido("Mendoza Paredes").tipoCliente(TipoCliente.BENEFICIARIO).esClienteAmigo(true).codigoClienteAmigo("CA-48291").activo(true).build());
-            clienteRepository.save(Cliente.builder().documentoIdentidad("41982341").tipoDocumento("DNI").nombre("Carlos Manuel").apellido("Arroyo Vega").tipoCliente(TipoCliente.REGULAR).esClienteAmigo(true).codigoClienteAmigo("CA-10294").activo(true).build());
+            clienteRepository.save(Cliente.builder().dniRuc("74218934").nombreCompleto("Elena Mendoza Paredes").tipoCliente(TipoCliente.BENEFICIARIO).esClienteAmigo(true).numeroClienteAmigo("CA-48291").activo(true).build());
+            clienteRepository.save(Cliente.builder().dniRuc("41982341").nombreCompleto("Carlos Manuel Arroyo Vega").tipoCliente(TipoCliente.REGULAR).esClienteAmigo(true).numeroClienteAmigo("CA-10294").activo(true).build());
         }
 
         // Seed Productos

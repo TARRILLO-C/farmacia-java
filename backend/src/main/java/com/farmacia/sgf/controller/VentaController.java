@@ -99,7 +99,7 @@ public class VentaController {
         }
 
         BigDecimal descuentoClienteAmigo = BigDecimal.ZERO;
-        if (cliente != null && Boolean.TRUE.equals(cliente.getEsClienteAmigo())) {
+        if (cliente != null && cliente.isEsClienteAmigo()) {
             descuentoClienteAmigo = rawSubtotal.multiply(new BigDecimal("0.05")).setScale(2, RoundingMode.HALF_UP);
         }
 
