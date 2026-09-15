@@ -3,27 +3,21 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Activity,
-  Lock,
-  User,
   Eye,
   EyeOff,
   AlertCircle,
   Loader2,
-  ArrowRight,
+  Sparkles,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { login, isAuthenticated } from '@/services/authService';
 
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('tarrillo@gmail.com');
+  const [password, setPassword] = useState('admin123');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,118 +67,159 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-50 relative overflow-hidden">
-      {/* Sutil halo decorativo en paleta institucional */}
-      <div className="absolute w-[500px] h-[500px] bg-teal-100/60 rounded-full blur-3xl pointer-events-none -top-24 -left-24" />
-      <div className="absolute w-[400px] h-[400px] bg-blue-100/50 rounded-full blur-3xl pointer-events-none -bottom-24 -right-24" />
-
-      <div className="w-full max-w-sm space-y-5 relative z-10">
-        {/* Cabecera limpia */}
-        <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center justify-center size-12 rounded-2xl bg-[#319795] text-white shadow-md shadow-[#319795]/20 mb-1">
-            <Activity className="size-6 stroke-[2.5]" />
+    <div className="min-h-screen w-full flex bg-white font-sans selection:bg-[#0095FF]/20 overflow-hidden">
+      {/* Sección Izquierda - Formulario de Login */}
+      <div className="w-full lg:w-[48%] flex flex-col justify-center items-center px-6 sm:px-12 md:px-16 py-10 z-10">
+        <div className="w-full max-w-sm space-y-6">
+          
+          {/* Título & Subtítulo */}
+          <div className="space-y-1.5">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#00A3FF]">
+              Bienvenido
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-normal">
+              Ingresa tu email y contraseña para continuar
+            </p>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-[#1a365d]">SGF Farmacia</h1>
-          <p className="text-xs text-slate-500">Sistema de Gestión Farmacéutica</p>
-        </div>
 
-        {/* Alerta de error */}
-        {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <AlertCircle className="size-4 shrink-0 text-rose-600" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+          {/* Mensaje de error */}
+          {errorMsg && (
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="size-4 shrink-0 text-rose-600" />
+              <span className="font-medium">{errorMsg}</span>
+            </div>
+          )}
 
-        {/* Tarjeta de Login - White Mode */}
-        <Card className="border-slate-200/90 bg-white shadow-xl shadow-slate-200/50 rounded-3xl">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Usuario */}
-              <div className="space-y-1.5">
-                <Label htmlFor="username" className="text-xs font-bold text-slate-700">
-                  Usuario
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="admin"
-                    autoComplete="username"
-                    disabled={loading}
-                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[#319795] h-9 text-xs rounded-xl"
-                  />
-                </div>
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Field: Email / Usuario */}
+            <div className="space-y-1.5">
+              <label htmlFor="username" className="block text-xs font-bold text-[#2A3B50]">
+                Email
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="ejemplo@correo.com"
+                autoComplete="username"
+                disabled={loading}
+                className="w-full h-11 px-4 rounded-xl bg-[#EDF3FD] hover:bg-[#E5EEFC] focus:bg-white border border-transparent focus:border-[#0095FF] focus:ring-4 focus:ring-[#0095FF]/15 text-slate-800 text-xs font-medium outline-none transition-all placeholder:text-slate-400"
+              />
+            </div>
+
+            {/* Field: Contraseña */}
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="block text-xs font-bold text-[#2A3B50]">
+                Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  className="w-full h-11 px-4 pr-10 rounded-xl bg-[#EDF3FD] hover:bg-[#E5EEFC] focus:bg-white border border-transparent focus:border-[#0095FF] focus:ring-4 focus:ring-[#0095FF]/15 text-slate-800 text-xs font-medium outline-none transition-all placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
+            </div>
 
-              {/* Contraseña */}
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-bold text-slate-700">
-                  Contraseña
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    disabled={loading}
-                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[#319795] h-9 pr-9 text-xs rounded-xl"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  </button>
-                </div>
-              </div>
+            {/* Switch: Recordarme */}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={rememberMe}
+                onClick={() => setRememberMe(!rememberMe)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  rememberMe ? 'bg-[#4B5E78]' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    rememberMe ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+              <span 
+                onClick={() => setRememberMe(!rememberMe)}
+                className="text-xs text-slate-500 font-medium cursor-pointer select-none"
+              >
+                Recordarme
+              </span>
+            </div>
 
-              {/* Botón Ingresar */}
-              <Button
+            {/* Botón submit: INGRESAR */}
+            <div className="pt-2">
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-9.5 bg-[#319795] hover:bg-[#287e7c] text-white font-bold text-xs rounded-xl shadow-sm active:scale-[0.99] transition-all cursor-pointer mt-2"
+                className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md shadow-[#0095FF]/25 bg-gradient-to-r from-[#00C6FF] to-[#0072FF] hover:from-[#00B8FA] hover:to-[#0065EE] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                    <Loader2 className="size-4 animate-spin" />
                     <span>Iniciando...</span>
                   </>
                 ) : (
-                  <>
-                    <span>Ingresar al Sistema</span>
-                    <ArrowRight className="size-3.5 ml-1.5" />
-                  </>
+                  <span>INGRESAR</span>
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+              </button>
+            </div>
+          </form>
 
-        {/* Acceso Rápido Demo (1-Click) */}
-        <div className="flex items-center justify-center gap-2 pt-0.5">
-          <span className="text-[11px] text-slate-400">Acceso demo:</span>
-          <button
-            type="button"
-            onClick={() => setDemo('admin', 'admin123')}
-            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white text-slate-600 hover:text-[#1a365d] border border-slate-200/90 shadow-2xs hover:border-[#319795]/50 transition-all cursor-pointer"
-          >
-            Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => setDemo('cajero', 'caja2026')}
-            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white text-slate-600 hover:text-[#1a365d] border border-slate-200/90 shadow-2xs hover:border-[#319795]/50 transition-all cursor-pointer"
-          >
-            Cajero
-          </button>
+          {/* Acceso rápido Demo */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <span className="flex items-center gap-1 font-medium">
+              <Sparkles className="size-3.5 text-amber-500" /> Demo rápido:
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDemo('admin', 'admin123')}
+                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-[#0095FF]/10 hover:text-[#0095FF] transition-all cursor-pointer"
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemo('cajero', 'caja2026')}
+                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-[#0095FF]/10 hover:text-[#0095FF] transition-all cursor-pointer"
+              >
+                Cajero
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Sección Derecha - Panel de Arte 3D Fluido Diagonal */}
+      <div className="hidden lg:block w-[52%] relative p-4 pl-0 h-screen overflow-hidden">
+        <div 
+          className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl"
+          style={{
+            clipPath: 'polygon(8% 0, 100% 0, 100% 100%, 0% 100%)',
+          }}
+        >
+          <img
+            src="/login-bg.png"
+            alt="Arte 3D Fluido"
+            className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700 ease-out"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
         </div>
       </div>
     </div>
@@ -195,8 +230,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-[#319795]" />
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-[#0095FF]" />
         </div>
       }
     >
@@ -204,3 +239,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

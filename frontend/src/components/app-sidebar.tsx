@@ -6,15 +6,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingCart,
-  Pill,
+  Package,
   Tags,
   Users,
   FileText,
   BarChart3,
-  Activity,
-  PlusCircle,
   LogOut,
-  ChevronRight,
+  Boxes,
+  Truck,
+  UserCheck,
+  ShieldCheck,
+  Settings,
+  Plus,
 } from 'lucide-react';
 
 import {
@@ -22,17 +25,14 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { removeAuthToken } from '@/services/api';
 
 interface NavItem {
@@ -42,32 +42,60 @@ interface NavItem {
   badge?: string;
 }
 
-const navItems: NavItem[] = [
+const gestionItems: NavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
-    title: 'Punto de Venta (POS)',
-    href: '/dashboard/pos',
-    icon: ShoppingCart,
-    badge: 'CAJA',
+    title: 'Productos',
+    href: '/dashboard/productos',
+    icon: Package,
   },
   {
-    title: 'Inventario y Fármacos',
-    href: '/dashboard/inventario',
-    icon: Pill,
-  },
-  {
-    title: 'Categorías',
+    title: 'Categorias',
     href: '/dashboard/categorias',
     icon: Tags,
+  },
+  {
+    title: 'Inventario',
+    href: '/dashboard/inventario',
+    icon: Boxes,
   },
   {
     title: 'Clientes',
     href: '/dashboard/clientes',
     icon: Users,
+  },
+  {
+    title: 'Proveedores',
+    href: '/dashboard/reportes', // or proveedores route if created
+    icon: Truck,
+  },
+  {
+    title: 'Usuarios',
+    href: '/dashboard/usuarios',
+    icon: UserCheck,
+  },
+  {
+    title: 'Permisos',
+    href: '/dashboard/permisos',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Configuración',
+    href: '/dashboard/configuracion',
+    icon: Settings,
+  },
+];
+
+const ventasItems: NavItem[] = [
+  {
+    title: 'Punto de Venta (POS)',
+    href: '/dashboard/pos',
+    icon: ShoppingCart,
+    badge: 'CAJA',
   },
   {
     title: 'Historial de Ventas',
@@ -91,70 +119,46 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border" {...props}>
-      {/* 1. Header con branding SGF y Botón de Venta Rápida */}
-      <SidebarHeader className="border-b border-sidebar-border p-3 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
-        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-          <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+    <Sidebar collapsible="icon" className="border-r border-slate-200/70 bg-[#F8FAFC]" {...props}>
+      {/* 1. Header con Branding "Sistema AG" */}
+      <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
               asChild
-              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+              className="hover:bg-transparent group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
             >
               <Link
                 href="/dashboard"
                 className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center"
               >
-                <div className="flex aspect-square size-9 group-data-[collapsible=icon]:size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#319795] to-[#285e61] text-white shadow-md shrink-0">
-                  <Activity className="size-5 stroke-[2.5]" />
+                {/* Cross logo teal/cyan */}
+                <div className="flex size-9 items-center justify-center rounded-xl bg-[#E6F7F7] text-[#00A3FF] border border-[#00A3FF]/20 shadow-2xs shrink-0">
+                  <Plus className="size-6 stroke-[3] text-[#00A3FF]" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-bold text-white flex items-center gap-1.5">
-                    SGF
-                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#319795]/30 text-[#81e6d9] border border-[#319795]/50">
-                      v1.0
-                    </span>
-                  </span>
-                  <span className="truncate text-xs text-slate-300 font-medium">
-                    Gestión Farmacéutica
+                <div className="grid flex-1 text-left group-data-[collapsible=icon]:hidden">
+                  <span className="truncate font-extrabold text-[#1E293B] text-base tracking-tight">
+                    Sistema AG
                   </span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-
-        {/* Botón de Venta Rápida en versión extendida */}
-        <div className="mt-1 px-1 group-data-[collapsible=icon]:hidden">
-          <Button
-            asChild
-            className="w-full justify-center gap-2 h-9 text-xs font-bold shadow-md bg-[#319795] hover:bg-[#287e7c] text-white rounded-xl active:scale-[0.98] transition-transform"
-          >
-            <Link href="/dashboard/pos">
-              <PlusCircle className="size-4" />
-              <span>Nueva Venta Rápida</span>
-            </Link>
-          </Button>
-        </div>
       </SidebarHeader>
 
-      {/* 2. Contenido de navegación estructurado con Shadcn */}
-      <SidebarContent className="px-2 py-3 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2 overflow-x-hidden">
-        <SidebarGroup className="group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center">
-          <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-1 group-data-[collapsible=icon]:hidden">
-            Menú Principal
+      {/* 2. Contenido de navegación GESTIÓN y VENTAS */}
+      <SidebarContent className="px-3 py-2 space-y-4 group-data-[collapsible=icon]:px-1 overflow-x-hidden">
+        {/* Grupo GESTIÓN */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-2 group-data-[collapsible=icon]:hidden">
+            GESTIÓN
           </SidebarGroupLabel>
 
-          <SidebarGroupAction asChild title="Nueva Venta Rápida" className="group-data-[collapsible=icon]:hidden">
-            <Link href="/dashboard/pos">
-              <PlusCircle className="size-4" />
-              <span className="sr-only">Nueva Venta Rápida</span>
-            </Link>
-          </SidebarGroupAction>
-
           <SidebarGroupContent>
-            <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5">
-              {navItems.map((item) => {
+            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:items-center">
+              {gestionItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
                   item.href === '/dashboard'
@@ -162,43 +166,84 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     : pathname.startsWith(item.href);
 
                 return (
-                  <SidebarMenuItem
-                    key={item.href}
-                    className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full"
-                  >
+                  <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={`gap-3 h-10 px-3 rounded-xl transition-all group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center ${
+                      className={`gap-3 h-11 px-3 rounded-2xl transition-all ${
                         isActive
-                          ? 'bg-[#319795] text-white shadow-sm hover:bg-[#287e7c] hover:text-white font-bold'
-                          : 'text-slate-200 hover:bg-sidebar-accent hover:text-white font-medium'
+                          ? 'bg-white text-slate-900 font-extrabold shadow-sm border border-slate-200/80'
+                          : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 font-medium'
                       }`}
                     >
                       <Link
                         href={item.href}
-                        className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center w-full h-full"
+                        className="flex items-center gap-3 w-full h-full"
                       >
-                        <Icon
-                          className={`size-4.5 shrink-0 ${
-                            isActive ? 'text-white' : 'text-slate-300'
+                        <div
+                          className={`size-7 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                            isActive
+                              ? 'bg-gradient-to-tr from-[#D946EF] to-[#C026D3] text-white shadow-xs'
+                              : 'bg-white text-slate-500 border border-slate-200/60'
                           }`}
-                        />
-                        <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
+                        >
+                          <Icon className="size-4" />
+                        </div>
+                        <span className="text-xs truncate group-data-[collapsible=icon]:hidden">
                           {item.title}
                         </span>
-                        {isActive && (
-                          <ChevronRight className="size-4 ml-auto text-white/80 group-data-[collapsible=icon]:hidden" />
-                        )}
                       </Link>
                     </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-                    {item.badge && (
-                      <SidebarMenuBadge className="bg-[#319795]/20 text-[#81e6d9] border border-[#319795]/40 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md group-data-[collapsible=icon]:hidden">
-                        {item.badge}
-                      </SidebarMenuBadge>
-                    )}
+        {/* Grupo VENTAS */}
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-2 group-data-[collapsible=icon]:hidden">
+            VENTAS
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:items-center">
+              {ventasItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname.startsWith(item.href);
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={`gap-3 h-11 px-3 rounded-2xl transition-all ${
+                        isActive
+                          ? 'bg-white text-slate-900 font-extrabold shadow-sm border border-slate-200/80'
+                          : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 font-medium'
+                      }`}
+                    >
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-3 w-full h-full"
+                      >
+                        <div
+                          className={`size-7 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                            isActive
+                              ? 'bg-gradient-to-tr from-[#D946EF] to-[#C026D3] text-white shadow-xs'
+                              : 'bg-white text-slate-500 border border-slate-200/60'
+                          }`}
+                        >
+                          <Icon className="size-4" />
+                        </div>
+                        <span className="text-xs truncate group-data-[collapsible=icon]:hidden">
+                          {item.title}
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
@@ -207,33 +252,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* 3. Footer con Turno / Usuario y Logout */}
-      <SidebarFooter className="p-3 border-t border-sidebar-border group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
-        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-          <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+      {/* 3. Footer con Botón Salir */}
+      <SidebarFooter className="p-3 border-t border-slate-200/60">
+        <SidebarMenu>
+          <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="Turno Activo (Cerrar Sesión)"
               onClick={handleLogout}
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-rose-300 transition-colors rounded-xl group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+              className="text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors rounded-2xl"
             >
-              <div className="flex aspect-square size-8 group-data-[collapsible=icon]:size-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
-                <div className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex size-8 items-center justify-center rounded-xl bg-slate-200/80 text-slate-600 shrink-0">
+                <LogOut className="size-4" />
               </div>
-              <div className="grid flex-1 text-left text-xs leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-bold text-white">Turno Activo</span>
-                <span className="truncate text-[10px] text-slate-300">Caja Principal</span>
+              <div className="grid flex-1 text-left text-xs group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-bold">Cerrar Sesión</span>
+                <span className="truncate text-[10px] text-slate-400">Salida segura</span>
               </div>
-              <LogOut className="size-4 ml-auto text-slate-400 hover:text-rose-400 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* 4. Rail colapsable para interacción desktop */}
       <SidebarRail />
     </Sidebar>
   );
 }
 
 export default AppSidebar;
+
