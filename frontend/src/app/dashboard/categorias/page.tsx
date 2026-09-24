@@ -134,7 +134,7 @@ export default function CategoriasPage() {
   };
 
   return (
-    <RoleGuard allowedRoles={['ADMIN']}>
+    <RoleGuard allowedRoles={['ADMIN', 'FARMACEUTICO']}>
       <div className="space-y-6">
       {/* Toast Notification */}
       {toast && (

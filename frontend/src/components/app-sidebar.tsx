@@ -17,6 +17,10 @@ import {
   ChevronRight,
   ShieldCheck,
   UserCheck,
+  Truck,
+  Briefcase,
+  FlaskConical,
+  CalendarClock,
 } from 'lucide-react';
 
 import {
@@ -43,7 +47,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
-  roles: RolUsuario[];
+  roles: (RolUsuario | string)[];
   moduleKey: string;
 }
 
@@ -52,7 +56,7 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['ADMIN', 'CAJERO'],
+    roles: ['ADMIN', 'FARMACEUTICO', 'CAJERO'],
     moduleKey: 'dashboard',
   },
   {
@@ -60,43 +64,72 @@ const navItems: NavItem[] = [
     href: '/dashboard/pos',
     icon: ShoppingCart,
     badge: 'CAJA',
-    roles: ['ADMIN', 'CAJERO'],
+    roles: ['ADMIN', 'FARMACEUTICO', 'CAJERO'],
     moduleKey: 'pos',
   },
   {
-    title: 'Inventario y Fármacos',
+    title: 'Inventario de Fármacos',
     href: '/dashboard/inventario',
     icon: Pill,
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'FARMACEUTICO'],
     moduleKey: 'inventario',
+  },
+  {
+    title: 'Control de Lotes (FEFO)',
+    href: '/dashboard/lotes',
+    icon: CalendarClock,
+    badge: 'FEFO',
+    roles: ['ADMIN', 'FARMACEUTICO'],
+    moduleKey: 'lotes',
+  },
+  {
+    title: 'Compras a Proveedores',
+    href: '/dashboard/compras',
+    icon: Truck,
+    roles: ['ADMIN', 'FARMACEUTICO'],
+    moduleKey: 'compras',
+  },
+  {
+    title: 'Proveedores',
+    href: '/dashboard/proveedores',
+    icon: Briefcase,
+    roles: ['ADMIN', 'FARMACEUTICO'],
+    moduleKey: 'proveedores',
+  },
+  {
+    title: 'Catálogos Clínicos',
+    href: '/dashboard/catalogos',
+    icon: FlaskConical,
+    roles: ['ADMIN', 'FARMACEUTICO'],
+    moduleKey: 'catalogos',
   },
   {
     title: 'Categorías',
     href: '/dashboard/categorias',
     icon: Tags,
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'FARMACEUTICO'],
     moduleKey: 'categorias',
   },
   {
-    title: 'Clientes',
+    title: 'Clientes & CRM',
     href: '/dashboard/clientes',
     icon: Users,
-    roles: ['ADMIN', 'CAJERO'],
+    roles: ['ADMIN', 'FARMACEUTICO', 'CAJERO'],
     moduleKey: 'clientes',
   },
   {
     title: 'Historial de Ventas',
     href: '/dashboard/ventas',
     icon: FileText,
-    roles: ['ADMIN', 'CAJERO'],
+    roles: ['ADMIN', 'FARMACEUTICO', 'CAJERO'],
     moduleKey: 'ventas',
   },
   {
-    title: 'Reportes y Métricas',
-    href: '/dashboard/reportes',
-    icon: BarChart3,
+    title: 'Personal / Empleados',
+    href: '/dashboard/empleados',
+    icon: UserCheck,
     roles: ['ADMIN'],
-    moduleKey: 'reportes',
+    moduleKey: 'empleados',
   },
   {
     title: 'Usuarios del Sistema',
@@ -104,6 +137,13 @@ const navItems: NavItem[] = [
     icon: ShieldCheck,
     roles: ['ADMIN'],
     moduleKey: 'usuarios',
+  },
+  {
+    title: 'Reportes y Métricas',
+    href: '/dashboard/reportes',
+    icon: BarChart3,
+    roles: ['ADMIN'],
+    moduleKey: 'reportes',
   },
 ];
 
@@ -121,15 +161,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     logout();
   };
 
-  // Filtrado de módulos dinámico según los permisos específicos del usuario
+  // Filtrado de módulos dinámico según los permisos específicos del usuario y su rol
   const visibleNavItems = React.useMemo(() => {
     if (!currentUser) return navItems;
 
+    const userRol = String(currentUser.rol || '').toUpperCase();
+
     if (currentUser.modulosPermitidos && currentUser.modulosPermitidos.length > 0) {
-      return navItems.filter((item) => currentUser.modulosPermitidos!.includes(item.moduleKey));
+      return navItems.filter((item) =>
+        currentUser.modulosPermitidos!.includes(item.moduleKey) ||
+        (item.roles && item.roles.map((r) => String(r).toUpperCase()).includes(userRol))
+      );
     }
 
-    if (currentUser.rol === 'ADMIN') return navItems;
+    if (userRol.includes('ADMIN')) return navItems;
+    if (userRol.includes('FARMACEUTICO')) {
+      return navItems.filter((item) =>
+        ['dashboard', 'pos', 'inventario', 'lotes', 'compras', 'proveedores', 'catalogos', 'categorias', 'clientes', 'ventas'].includes(item.moduleKey)
+      );
+    }
+    // CAJERO
     return navItems.filter((item) =>
       ['dashboard', 'pos', 'clientes', 'ventas'].includes(item.moduleKey)
     );
@@ -271,8 +322,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </span>
                 <span className="truncate text-[10px] text-slate-300 flex items-center gap-1">
                   {currentUser ? (
-                    currentUser.rol === 'ADMIN' ? (
+                    String(currentUser.rol || '').toUpperCase().includes('ADMIN') ? (
                       <span className="text-blue-300 font-semibold">Administrador</span>
+                    ) : String(currentUser.rol || '').toUpperCase().includes('FARMACEUTICO') ? (
+                      <span className="text-purple-300 font-semibold">Farmacéutico</span>
                     ) : (
                       <span className="text-emerald-300 font-semibold">Caja / Ventanilla</span>
                     )

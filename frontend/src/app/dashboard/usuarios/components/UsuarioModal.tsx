@@ -24,6 +24,11 @@ import {
   BarChart3,
   CheckSquare,
   Square,
+  Truck,
+  Briefcase,
+  FlaskConical,
+  CalendarClock,
+  UserCheck,
 } from 'lucide-react';
 
 interface UsuarioDrawerProps {
@@ -48,9 +53,33 @@ export const MODULOS_SISTEMA = [
   },
   {
     id: 'inventario',
-    nombre: 'Inventario y Fármacos',
-    descripcion: 'Catálogo de medicamentos, lotes y niveles de stock',
+    nombre: 'Inventario de Fármacos',
+    descripcion: 'Catálogo de medicamentos y niveles de stock',
     icon: Pill,
+  },
+  {
+    id: 'lotes',
+    nombre: 'Control de Lotes (FEFO)',
+    descripcion: 'Vencimientos y rotación por fecha de caducidad',
+    icon: CalendarClock,
+  },
+  {
+    id: 'compras',
+    nombre: 'Compras a Proveedores',
+    descripcion: 'Órdenes de compra y recepción de mercadería',
+    icon: Truck,
+  },
+  {
+    id: 'proveedores',
+    nombre: 'Proveedores',
+    descripcion: 'Directorio de laboratorios y distribuidores mayoristas',
+    icon: Briefcase,
+  },
+  {
+    id: 'catalogos',
+    nombre: 'Catálogos Clínicos',
+    descripcion: 'Laboratorios, Principios Activos y Presentaciones',
+    icon: FlaskConical,
   },
   {
     id: 'categorias',
@@ -71,6 +100,12 @@ export const MODULOS_SISTEMA = [
     icon: FileText,
   },
   {
+    id: 'empleados',
+    nombre: 'Personal / Empleados',
+    descripcion: 'Gestión de personal y talento humano',
+    icon: UserCheck,
+  },
+  {
     id: 'reportes',
     nombre: 'Reportes y Métricas',
     descripcion: 'Auditoría tributaria, ingresos y ranking de rotación',
@@ -85,6 +120,7 @@ export const MODULOS_SISTEMA = [
 ];
 
 const TODOS_LOS_MODULOS = MODULOS_SISTEMA.map((m) => m.id);
+const MODULOS_FARMACEUTICO_DEFAULT = ['dashboard', 'pos', 'inventario', 'lotes', 'compras', 'proveedores', 'catalogos', 'categorias', 'clientes', 'ventas'];
 const MODULOS_CAJERO_DEFAULT = ['dashboard', 'pos', 'clientes', 'ventas'];
 
 export default function UsuarioModal({
@@ -139,6 +175,8 @@ export default function UsuarioModal({
     if (!isEditing) {
       if (nuevoRol === 'ADMIN') {
         setModulosPermitidos(TODOS_LOS_MODULOS);
+      } else if (nuevoRol === 'FARMACEUTICO') {
+        setModulosPermitidos(MODULOS_FARMACEUTICO_DEFAULT);
       } else {
         setModulosPermitidos(MODULOS_CAJERO_DEFAULT);
       }
@@ -329,11 +367,11 @@ export default function UsuarioModal({
             </h4>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               type="button"
               onClick={() => handleSelectRole('ADMIN')}
-              className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+              className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                 rol === 'ADMIN'
                   ? 'border-[#1a365d] bg-[#1a365d]/5 ring-2 ring-[#1a365d]/20 shadow-xs'
                   : 'border-slate-200 hover:bg-slate-50'
@@ -343,26 +381,44 @@ export default function UsuarioModal({
                 <span className="font-bold text-xs text-[#1a365d]">ADMINISTRADOR</span>
                 {rol === 'ADMIN' && <CheckCircle2 className="w-4 h-4 text-[#1a365d]" />}
               </div>
-              <span className="text-[11px] text-slate-500">
-                Rol jerárquico con privilegios de gestión y configuración global.
+              <span className="text-[10px] text-slate-500">
+                Privilegios de gestión y configuración global.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSelectRole('FARMACEUTICO')}
+              className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                rol === 'FARMACEUTICO'
+                  ? 'border-purple-600 bg-purple-500/5 ring-2 ring-purple-500/20 shadow-xs'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-purple-700">FARMACÉUTICO</span>
+                {rol === 'FARMACEUTICO' && <CheckCircle2 className="w-4 h-4 text-purple-600" />}
+              </div>
+              <span className="text-[10px] text-slate-500">
+                Control de inventario, lotes, compras y catálogos.
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => handleSelectRole('CAJERO')}
-              className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+              className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                 rol === 'CAJERO'
                   ? 'border-[#319795] bg-[#319795]/5 ring-2 ring-[#319795]/20 shadow-xs'
                   : 'border-slate-200 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-[#319795]">CAJERO / OPERADOR</span>
+                <span className="font-bold text-xs text-[#319795]">CAJERO / POS</span>
                 {rol === 'CAJERO' && <CheckCircle2 className="w-4 h-4 text-[#319795]" />}
               </div>
-              <span className="text-[11px] text-slate-500">
-                Rol operativo orientado a atención de clientes y facturación.
+              <span className="text-[10px] text-slate-500">
+                Atención en mostrador, POS y cobro de ventas.
               </span>
             </button>
           </div>

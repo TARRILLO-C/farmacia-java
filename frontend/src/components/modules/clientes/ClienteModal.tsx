@@ -59,7 +59,7 @@ export const ClienteModal: React.FC<ClienteModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (clienteToEdit) {
-        setTipoDocumento(clienteToEdit.tipoDocumento || 'DNI');
+        setTipoDocumento((clienteToEdit.tipoDocumento as 'DNI' | 'RUC' | 'CE' | 'PASAPORTE') || 'DNI');
         setDocumentoIdentidad(clienteToEdit.documentoIdentidad || '');
         setNombre(clienteToEdit.nombre || '');
         setApellido(clienteToEdit.apellido || '');

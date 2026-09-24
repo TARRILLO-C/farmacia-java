@@ -47,7 +47,7 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'TODOS' | 'ADMIN' | 'CAJERO'>('TODOS');
+  const [roleFilter, setRoleFilter] = useState<'TODOS' | 'ADMIN' | 'FARMACEUTICO' | 'CAJERO'>('TODOS');
 
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,7 +127,8 @@ export default function UsuariosPage() {
       const matchesSearch =
         u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.username.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = roleFilter === 'TODOS' || u.rol === roleFilter;
+      const uRol = String(u.rol || '').toUpperCase();
+      const matchesRole = roleFilter === 'TODOS' || uRol.includes(roleFilter);
       return matchesSearch && matchesRole;
     });
   }, [usuarios, searchTerm, roleFilter]);
@@ -135,10 +136,11 @@ export default function UsuariosPage() {
   // Estadísticas rápidas
   const stats = useMemo(() => {
     const total = usuarios.length;
-    const admins = usuarios.filter((u) => u.rol === 'ADMIN').length;
-    const cajeros = usuarios.filter((u) => u.rol === 'CAJERO').length;
+    const admins = usuarios.filter((u) => String(u.rol || '').toUpperCase().includes('ADMIN')).length;
+    const farmaceuticos = usuarios.filter((u) => String(u.rol || '').toUpperCase().includes('FARMACEUTICO')).length;
+    const cajeros = usuarios.filter((u) => String(u.rol || '').toUpperCase().includes('CAJERO')).length;
     const activos = usuarios.filter((u) => u.activo).length;
-    return { total, admins, cajeros, activos };
+    return { total, admins, farmaceuticos, cajeros, activos };
   }, [usuarios]);
 
   return (
@@ -323,6 +325,16 @@ export default function UsuariosPage() {
                   Admin ({stats.admins})
                 </button>
                 <button
+                  onClick={() => setRoleFilter('FARMACEUTICO')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    roleFilter === 'FARMACEUTICO'
+                      ? 'bg-white text-purple-700 shadow-xs font-bold'
+                      : 'hover:text-slate-900'
+                  }`}
+                >
+                  Farmacéuticos ({stats.farmaceuticos})
+                </button>
+                <button
                   onClick={() => setRoleFilter('CAJERO')}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     roleFilter === 'CAJERO'
@@ -383,12 +395,18 @@ export default function UsuariosPage() {
                         <TableCell className="text-center">
                           <Badge
                             className={`text-[10px] font-bold py-0.5 ${
-                              u.rol === 'ADMIN'
+                              String(u.rol).toUpperCase().includes('ADMIN')
                                 ? 'bg-[#1a365d] text-white hover:bg-[#1a365d]'
+                                : String(u.rol).toUpperCase().includes('FARMACEUTICO')
+                                ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200'
                                 : 'bg-[#319795]/15 text-[#287e7c] border-[#319795]/30 hover:bg-[#319795]/20'
                             }`}
                           >
-                            {u.rol === 'ADMIN' ? 'ADMINISTRADOR' : 'CAJERO'}
+                            {String(u.rol).toUpperCase().includes('ADMIN')
+                              ? 'ADMINISTRADOR'
+                              : String(u.rol).toUpperCase().includes('FARMACEUTICO')
+                              ? 'FARMACÉUTICO'
+                              : 'CAJERO'}
                           </Badge>
                           <span className="text-[10px] text-slate-400 block mt-0.5 font-medium">
                             {u.modulosPermitidos?.length ?? (u.rol === 'ADMIN' ? 8 : 4)} módulos

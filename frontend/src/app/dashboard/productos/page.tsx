@@ -254,7 +254,7 @@ export default function ProductosPage() {
   };
 
   return (
-    <RoleGuard allowedRoles={['ADMIN']}>
+    <RoleGuard allowedRoles={['ADMIN', 'FARMACEUTICO']}>
       <div className="space-y-6 pb-12">
       {/* Toast Notification */}
       {toast && (
