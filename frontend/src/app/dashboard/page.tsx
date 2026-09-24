@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { HeaderActions } from '@/components/layout/HeaderContext';
 import {
   Table,
   TableHeader,
@@ -210,29 +209,44 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Acciones inyectadas dinámicamente en la cabecera superior */}
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadDashboardData}
-          disabled={refreshing}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
-          <span className="hidden sm:inline">Actualizar</span>
-        </Button>
+      {/* Encabezado Principal */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <BarChart3 className="w-4 h-4" />
+            <span>Panel de Control Principal</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Dashboard General
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Métricas clave en tiempo real, balance comercial y alertas del sistema farmacéutico.
+          </p>
+        </div>
 
-        <Link href="/dashboard/pos">
+        <div className="flex items-center gap-2">
           <Button
+            variant="outline"
             size="sm"
-            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
+            onClick={loadDashboardData}
+            disabled={refreshing}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
           >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            <span>Punto de Venta</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
+            <span>Actualizar</span>
           </Button>
-        </Link>
-      </HeaderActions>
+
+          <Link href="/dashboard/pos">
+            <Button
+              size="sm"
+              className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Punto de Venta</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
 
       {/* ==================================================================== */}
       {/* GRID DE TARJETAS RESUMEN (MÉTRICAS CLAVE SOLICITADAS) */}

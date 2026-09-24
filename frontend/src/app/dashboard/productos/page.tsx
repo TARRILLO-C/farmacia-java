@@ -29,7 +29,6 @@ import { ProductoModal } from '@/components/modules/productos/ProductoModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import RoleGuard from '@/components/auth/RoleGuard';
 import { Card } from '@/components/ui/card';
 import {
@@ -280,37 +279,46 @@ export default function ProductosPage() {
         </div>
       )}
 
-      {/* Badge de cantidad */}
-      <HeaderBadge>
-        <Badge variant="teal" className="text-[10px] font-bold">
-          {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
-        </Badge>
-      </HeaderBadge>
+      {/* Encabezado Principal Visible */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <Pill className="w-4 h-4" />
+            <span>Gestión Farmacéutica & Existencias</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Inventario y Fármacos
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Catálogo maestro de medicamentos, control de precios, stock disponible y alertas de caducidad.
+          </p>
+        </div>
 
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchData}
-          disabled={loading}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refrescar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
+          </Button>
 
-        <Button
-          size="sm"
-          onClick={() => {
-            setProductoToEdit(null);
-            setIsModalOpen(true);
-          }}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Producto</span>
-        </Button>
-      </HeaderActions>
+          <Button
+            size="sm"
+            onClick={() => {
+              setProductoToEdit(null);
+              setIsModalOpen(true);
+            }}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Producto</span>
+          </Button>
+        </div>
+      </div>
 
       {error && (
         <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3 shadow-2xs">

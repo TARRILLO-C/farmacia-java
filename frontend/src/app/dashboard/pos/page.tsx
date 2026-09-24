@@ -44,7 +44,6 @@ import { postVenta } from '@/services/ventaService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AppDrawer } from '@/components/common/AppDrawer';
@@ -596,30 +595,42 @@ export default function PosPage() {
 
   return (
     <div className="space-y-4 pb-12">
-      {/* Badge y Acciones inyectadas en la cabecera superior */}
-      <HeaderBadge>
-        <Badge variant="teal" className="text-[10px] font-bold">
-          Caja 01 - Turno Abierto
-        </Badge>
-      </HeaderBadge>
-
-      <HeaderActions>
-        {cart.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearCart}
-            className="h-8 sm:h-9 gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Vaciar Orden</span>
-          </Button>
-        )}
-        <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-slate-100/80 rounded-xl text-slate-700 border border-slate-200/60">
-          <Barcode className="w-3.5 h-3.5 text-[#319795]" />
-          <span className="hidden md:inline">Escáner Activo</span>
+      {/* Encabezado POS */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <ShoppingCart className="w-4 h-4" />
+            <span>Terminal Punto de Venta (POS)</span>
+            <Badge variant="teal" className="text-[10px] font-bold ml-2">
+              Caja 01 - Turno Abierto
+            </Badge>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Caja Registradora
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Emisión de boletas, facturas y dispensación rápida de fármacos.
+          </p>
         </div>
-      </HeaderActions>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-100/90 rounded-xl text-slate-700 border border-slate-200">
+            <Barcode className="w-3.5 h-3.5 text-[#319795]" />
+            <span>Escáner Activo</span>
+          </div>
+          {cart.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearCart}
+              className="h-8 sm:h-9 gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Vaciar Orden</span>
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Grid Principal de 2 Columnas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

@@ -38,7 +38,6 @@ import { ReciboModal } from '@/components/modules/ventas/ReciboModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -182,35 +181,44 @@ export default function VentasPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Badge y Acciones inyectadas en la cabecera superior */}
-      <HeaderBadge>
-        <Badge variant="teal" className="text-[10px] font-bold">
-          {ventas.length} {ventas.length === 1 ? 'venta' : 'ventas'}
-        </Badge>
-      </HeaderBadge>
+      {/* Encabezado Principal */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <Receipt className="w-4 h-4" />
+            <span>Auditoría Comercial & Comprobantes</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Historial de Ventas
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Registro de comprobantes emitidos, transacciones de caja y estados de cobro.
+          </p>
+        </div>
 
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchVentasData}
-          disabled={loading}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refrescar</span>
-        </Button>
-
-        <Link href="/dashboard/pos">
+        <div className="flex items-center gap-2">
           <Button
+            variant="outline"
             size="sm"
-            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
+            onClick={fetchVentasData}
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>Nueva Venta (POS)</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
           </Button>
-        </Link>
-      </HeaderActions>
+
+          <Link href="/dashboard/pos">
+            <Button
+              size="sm"
+              className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Nueva Venta (POS)</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
 
       {error && (
         <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between gap-3 shadow-2xs">

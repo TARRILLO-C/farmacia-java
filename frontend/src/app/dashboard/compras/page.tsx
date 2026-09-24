@@ -15,10 +15,28 @@ import {
   Building2,
   CalendarClock,
   Layers,
+  X,
+  Archive,
+  CheckCircle2,
+  XCircle,
+  Barcode,
+  Receipt,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import {
   Compra,
   CreateCompraDTO,
@@ -45,8 +63,10 @@ export default function ComprasPage() {
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
 
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  // Drawers
+  const [isNewDrawerOpen, setIsNewDrawerOpen] = React.useState(false);
   const [selectedCompra, setSelectedCompra] = React.useState<Compra | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Formulario de Nueva Compra
   const [proveedorId, setProveedorId] = React.useState<number | ''>('');
@@ -55,26 +75,35 @@ export default function ComprasPage() {
   const [observaciones, setObservaciones] = React.useState('');
   const [items, setItems] = React.useState<ItemForm[]>([]);
 
-  // Item en edición dentro del modal
+  // Item en edición dentro del drawer
   const [selectedProdId, setSelectedProdId] = React.useState<number | ''>('');
   const [itemLote, setItemLote] = React.useState('');
   const [itemVencimiento, setItemVencimiento] = React.useState('');
   const [itemCantidad, setItemCantidad] = React.useState<number>(10);
   const [itemPrecio, setItemPrecio] = React.useState<number>(5.0);
 
+  // Toast
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
       const [comprasData, provsData, prodsData] = await Promise.all([
-        getCompras(),
-        getProveedores(),
-        getProductos(),
+        getCompras().catch(() => []),
+        getProveedores().catch(() => []),
+        getProductos().catch(() => []),
       ]);
-      setCompras(comprasData);
-      setProveedores(provsData.filter((p) => p.activo ?? true));
-      setProductos(prodsData.filter((p) => p.activo ?? true));
+      setCompras(Array.isArray(comprasData) ? comprasData : []);
+      setProveedores(Array.isArray(provsData) ? provsData.filter((p) => p.activo ?? true) : []);
+      setProductos(Array.isArray(prodsData) ? prodsData.filter((p) => p.activo ?? true) : []);
     } catch (error) {
       console.error('Error al cargar datos de compras:', error);
+      showToast('error', 'No se pudieron sincronizar las órdenes de compra.');
     } finally {
       setLoading(false);
     }
@@ -84,7 +113,7 @@ export default function ComprasPage() {
     loadData();
   }, [loadData]);
 
-  const handleOpenModal = () => {
+  const handleOpenNewDrawer = () => {
     setProveedorId(proveedores[0]?.id || '');
     setTipoComprobante('FACTURA');
     setNumeroComprobante('');
@@ -97,66 +126,74 @@ export default function ComprasPage() {
     setItemVencimiento(defaultExp.toISOString().split('T')[0]);
     setItemCantidad(50);
     setItemPrecio(productos[0]?.precioCompra || 5.0);
-    setIsModalOpen(true);
+    setIsNewDrawerOpen(true);
+  };
+
+  const handleProductSelectChange = (prodId: number) => {
+    setSelectedProdId(prodId);
+    const prod = productos.find((p) => p.id === prodId);
+    if (prod && prod.precioCompra) {
+      setItemPrecio(prod.precioCompra);
+    }
   };
 
   const handleAddItem = () => {
     if (!selectedProdId) {
-      alert('Debe seleccionar un producto.');
+      showToast('error', 'Seleccione un fármaco válido.');
       return;
     }
     if (!itemLote.trim()) {
-      alert('Debe ingresar el código de lote del producto.');
+      showToast('error', 'Ingrese el número de lote para trazabilidad.');
       return;
     }
     if (!itemVencimiento) {
-      alert('Debe ingresar la fecha de caducidad del lote.');
+      showToast('error', 'Indique la fecha de caducidad del lote.');
       return;
     }
     if (itemCantidad <= 0 || itemPrecio <= 0) {
-      alert('La cantidad y precio deben ser mayores a cero.');
+      showToast('error', 'Cantidad y precio deben ser mayores a cero.');
       return;
     }
 
-    setItems([
-      ...items,
-      {
-        productoId: Number(selectedProdId),
-        codigoLote: itemLote.trim(),
-        fechaVencimiento: itemVencimiento,
-        cantidad: Number(itemCantidad),
-        precioCompraUnitario: Number(itemPrecio),
-      },
-    ]);
+    const newItem: ItemForm = {
+      productoId: Number(selectedProdId),
+      codigoLote: itemLote.trim(),
+      fechaVencimiento: itemVencimiento,
+      cantidad: Number(itemCantidad),
+      precioCompraUnitario: Number(itemPrecio),
+    };
 
-    // Reset temporal
+    setItems((prev) => [...prev, newItem]);
+
+    // Reset para el siguiente item
     setItemLote(`LOT-${new Date().getFullYear()}-${items.length + 2}`);
+    setItemCantidad(50);
   };
 
   const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const totalCalculado = items.reduce(
-    (acc, curr) => acc + curr.cantidad * curr.precioCompraUnitario,
-    0
-  );
+  const totalCalculado = React.useMemo(() => {
+    return items.reduce((acc, it) => acc + it.cantidad * it.precioCompraUnitario, 0);
+  }, [items]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegistrarCompra = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proveedorId) {
-      alert('Seleccione un proveedor.');
+      showToast('error', 'Seleccione el proveedor autorizado.');
       return;
     }
     if (items.length === 0) {
-      alert('Debe agregar al menos un producto a la compra.');
+      showToast('error', 'Debe agregar al menos un fármaco a la orden de compra.');
       return;
     }
 
+    setIsSubmitting(true);
     const payload: CreateCompraDTO = {
       proveedorId: Number(proveedorId),
       tipoComprobante,
-      numeroComprobante: numeroComprobante.trim() || `FAC-${Date.now()}`,
+      numeroComprobante: numeroComprobante.trim() || undefined,
       observaciones: observaciones.trim() || undefined,
       detalles: items.map((it) => ({
         productoId: it.productoId,
@@ -169,37 +206,75 @@ export default function ComprasPage() {
 
     try {
       await registrarCompra(payload);
-      setIsModalOpen(false);
+      showToast('success', '¡Orden de compra y lotes ingresados al inventario exitosamente!');
+      setIsNewDrawerOpen(false);
       loadData();
-      alert('¡Compra registrada con éxito e inventario/lotes actualizados!');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al procesar la compra.');
+      showToast('error', error.response?.data?.message || 'Error al registrar la compra.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const filtered = compras.filter((c) => {
-    const q = search.toLowerCase();
-    return (
-      c.numeroCompra.toLowerCase().includes(q) ||
-      (c.proveedorNombre && c.proveedorNombre.toLowerCase().includes(q)) ||
-      (c.numeroComprobante && c.numeroComprobante.toLowerCase().includes(q))
+  const filtered = React.useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return compras;
+    return compras.filter(
+      (c) =>
+        (c.numeroCompra && c.numeroCompra.toLowerCase().includes(q)) ||
+        (c.numeroFactura && c.numeroFactura.toLowerCase().includes(q)) ||
+        (c.proveedorRazonSocial && c.proveedorRazonSocial.toLowerCase().includes(q)) ||
+        (c.proveedorNombre && c.proveedorNombre.toLowerCase().includes(q)) ||
+        (c.numeroComprobante && c.numeroComprobante.toLowerCase().includes(q))
     );
-  });
+  }, [compras, search]);
+
+  const stats = React.useMemo(() => {
+    const total = compras.length;
+    const inversionTotal = compras.reduce((acc, c) => acc + (c.total ?? c.montoTotal ?? 0), 0);
+    const proveedoresSet = new Set(compras.map((c) => c.proveedorId));
+    return {
+      total,
+      inversionTotal,
+      proveedoresCount: proveedoresSet.size,
+    };
+  }, [compras]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-medium transition-all animate-in fade-in slide-in-from-top-4 ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : 'bg-rose-50 text-rose-900 border-rose-200'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 hover:bg-black/5 rounded-lg ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
-            <Truck className="size-4" />
-            <span>Abastecimiento & Adquisiciones</span>
+            <Truck className="w-4 h-4" />
+            <span>Abastecimiento & Control de Compras</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-1">
-            Compras a Proveedores
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Órdenes de Compra
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Ingreso de órdenes de compra, control de facturas de laboratorio y creación automática de lotes (FEFO).
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Ingreso de órdenes de compra, control de facturas de laboratorios y creación automática de lotes (FEFO).
           </p>
         </div>
 
@@ -208,475 +283,560 @@ export default function ComprasPage() {
             variant="outline"
             size="sm"
             onClick={loadData}
-            className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300"
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
           >
-            <RefreshCw className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
           </Button>
 
           <Button
-            onClick={handleOpenModal}
-            className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold shadow-md gap-2"
+            size="sm"
+            onClick={handleOpenNewDrawer}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
           >
-            <Plus className="size-4" />
-            Registrar Compra
+            <Plus className="w-4 h-4" />
+            <span>Registrar Compra</span>
           </Button>
         </div>
       </div>
 
-      {/* Barra de búsqueda */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por N° Compra, Proveedor o Factura..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-slate-900/70 border-slate-800 text-white placeholder:text-slate-500 rounded-xl"
-          />
-        </div>
-        <div className="text-xs text-slate-400">
-          Registros: <span className="font-bold text-white">{filtered.length}</span> compras
-        </div>
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total Órdenes</span>
+            <div className="p-2 rounded-xl bg-slate-100 text-[#1a365d]">
+              <FileCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#1a365d]">{stats.total}</span>
+            <span className="text-[11px] text-slate-400">compras registradas</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-800">Inversión Total Acumulada</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-700 font-mono">
+              S/ {stats.inversionTotal.toFixed(2)}
+            </span>
+            <span className="text-[11px] text-emerald-600/80">en mercadería</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs col-span-2 md:col-span-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Proveedores Abastecedores</span>
+            <div className="p-2 rounded-xl bg-teal-50 text-[#319795]">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#1a365d]">{stats.proveedoresCount}</span>
+            <span className="text-[11px] text-slate-400">distribuidores distintos</span>
+          </div>
+        </Card>
       </div>
 
-      {/* Tabla de Compras */}
-      <Card className="border-slate-800/80 bg-slate-900/50 shadow-xl rounded-xl overflow-hidden">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950/70 text-slate-400 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-800">
-                <tr>
-                  <th className="px-4 py-3.5">N° Compra</th>
-                  <th className="px-4 py-3.5">Fecha</th>
-                  <th className="px-4 py-3.5">Proveedor</th>
-                  <th className="px-4 py-3.5">Comprobante</th>
-                  <th className="px-4 py-3.5 text-right">Monto Total</th>
-                  <th className="px-4 py-3.5 text-center">Items</th>
-                  <th className="px-4 py-3.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-10 text-slate-400">
-                      <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-[#319795]" />
-                      Cargando historial de compras...
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-10 text-slate-500">
-                      No se encontraron órdenes de compra registradas.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((compra) => (
-                    <tr key={compra.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-4 py-3 font-mono font-bold text-white">
-                        {compra.numeroCompra}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-300">
-                        {compra.fecha ? new Date(compra.fecha).toLocaleDateString('es-PE', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        }) : '-'}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-slate-200">
-                        {compra.proveedorNombre || 'Proveedor'}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono border border-slate-700">
-                          {compra.tipoComprobante || 'FAC'}: {compra.numeroComprobante || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-emerald-400 font-mono">
-                        S/ {compra.montoTotal.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                          {compra.detalles?.length || 0} lotes
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedCompra(compra)}
-                          className="h-8 text-[#319795] hover:text-white hover:bg-[#319795]/20 gap-1"
-                        >
-                          <Eye className="size-3.5" /> Ver Detalle
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      {/* Contenedor Principal: Filtros y Tabla */}
+      <Card className="bg-white border border-slate-200/80 shadow-xs rounded-2xl overflow-hidden">
+        {/* Barra de Filtro */}
+        <div className="p-4 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por N° Compra, Proveedor o Factura..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-8 h-9 text-xs bg-white rounded-xl border-slate-200 shadow-none focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-        </CardContent>
+
+          <div className="text-xs text-slate-500 font-medium self-end sm:self-center">
+            Mostrando <span className="font-bold text-slate-800">{filtered.length}</span> compras
+          </div>
+        </div>
+
+        {/* Tabla */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-36">N° Compra</TableHead>
+              <TableHead className="w-32">Fecha</TableHead>
+              <TableHead>Proveedor Distribuidor</TableHead>
+              <TableHead>Comprobante Fiscal</TableHead>
+              <TableHead className="text-right">Monto Total</TableHead>
+              <TableHead className="text-center">Ítems / Lotes</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx} className="animate-pulse">
+                  <TableCell><div className="h-4 w-24 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-20 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-44 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-28 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell className="text-right"><div className="h-4 w-20 bg-slate-200 rounded-md ml-auto"></div></TableCell>
+                  <TableCell className="text-center"><div className="h-5 w-16 bg-slate-200 rounded-full mx-auto"></div></TableCell>
+                  <TableCell className="text-right"><div className="h-6 w-20 bg-slate-200 rounded-md ml-auto"></div></TableCell>
+                </TableRow>
+              ))
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-14 text-center">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
+                    <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
+                      <Archive className="w-8 h-8" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">
+                      {search ? 'Sin compras para este criterio' : 'No hay órdenes de compra registradas'}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {search
+                        ? 'Verifique los términos de búsqueda o limpie el filtro.'
+                        : 'Pulse "Registrar Compra" para ingresar mercadería con lotes automáticos.'}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((compra) => (
+                <TableRow key={compra.id} className="group hover:bg-slate-50/70 transition-colors">
+                  {/* N° Compra */}
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#1a365d] bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 w-fit">
+                      <Receipt className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{compra.numeroCompra || compra.numeroFactura || `COM-${compra.id}`}</span>
+                    </div>
+                  </TableCell>
+
+                  {/* Fecha */}
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-xs text-slate-600">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span>
+                        {(compra.fechaCompra || compra.fecha || compra.createdAt)
+                          ? new Date(compra.fechaCompra || compra.fecha || compra.createdAt!).toLocaleDateString('es-PE', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : '-'}
+                      </span>
+                    </div>
+                  </TableCell>
+
+                  {/* Proveedor */}
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-900 text-sm group-hover:text-[#319795] transition-colors">
+                        {compra.proveedorRazonSocial || compra.proveedorNombre || 'Proveedor'}
+                      </span>
+                    </div>
+                  </TableCell>
+
+                  {/* Comprobante */}
+                  <TableCell>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 border border-slate-200">
+                      {compra.tipoComprobante || 'FAC'}: {compra.numeroFactura || compra.numeroComprobante || '-'}
+                    </span>
+                  </TableCell>
+
+                  {/* Total */}
+                  <TableCell className="text-right font-mono font-bold text-sm text-slate-900">
+                    S/ {(compra.total ?? compra.montoTotal ?? 0).toFixed(2)}
+                  </TableCell>
+
+                  {/* Lotes / Ítems */}
+                  <TableCell className="text-center">
+                    <Badge variant="teal" className="text-[11px] px-2.5 py-0.5 font-semibold">
+                      {compra.detalles?.length || 0} lotes
+                    </Badge>
+                  </TableCell>
+
+                  {/* Acciones */}
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedCompra(compra)}
+                      className="h-8 text-xs font-semibold text-[#319795] hover:text-[#287e7c] hover:bg-teal-50 gap-1 rounded-xl cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Ver Detalle</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </Card>
 
-      {/* Modal Ver Detalle de Compra */}
-      {selectedCompra && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FileCheck className="size-5 text-[#319795]" />
-                  Detalle de Compra: {selectedCompra.numeroCompra}
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Proveedor: {selectedCompra.proveedorNombre} | Factura: {selectedCompra.numeroComprobante}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedCompra(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+      {/* Drawer: Registro de Nueva Compra */}
+      <AppDrawer
+        isOpen={isNewDrawerOpen}
+        onClose={() => setIsNewDrawerOpen(false)}
+        title="Registrar Orden de Compra"
+        description="Ingreso de fármacos por compra con generación automática de lotes (FEFO)."
+        icon={Truck}
+        onSubmit={handleRegistrarCompra}
+        isSubmitting={isSubmitting}
+        submitText={`Emitir Orden (S/ ${totalCalculado.toFixed(2)})`}
+        cancelText="Cancelar"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-5 py-2">
+          {/* Cabecera de Compra */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+            {/* Proveedor */}
+            <div className="space-y-1 sm:col-span-3">
+              <Label htmlFor="proveedor" className="text-xs font-bold text-slate-700">
+                Proveedor Mayorista <span className="text-rose-500">*</span>
+              </Label>
+              <select
+                id="proveedor"
+                value={proveedorId}
+                onChange={(e) => setProveedorId(Number(e.target.value))}
+                className="flex h-9 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#319795]/20 focus:border-[#319795]"
+                required
               >
-                ✕
-              </button>
+                <option value="">Seleccione el proveedor...</option>
+                {proveedores.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.razonSocial} (RUC: {p.ruc})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-xs">
-                <div>
-                  <span className="text-slate-500 block">Fecha Registro</span>
-                  <span className="font-semibold text-white">
-                    {selectedCompra.fecha ? new Date(selectedCompra.fecha).toLocaleString('es-PE') : '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Comprobante</span>
-                  <span className="font-semibold text-white">{selectedCompra.numeroComprobante || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Registrado por</span>
-                  <span className="font-semibold text-white">{selectedCompra.usuarioNombre || 'Admin'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Total Pagado</span>
-                  <span className="font-bold text-emerald-400 text-sm">
-                    S/ {selectedCompra.montoTotal.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Lotes Ingresados al Inventario
-                </h4>
-                <div className="border border-slate-800 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
-                      <tr>
-                        <th className="p-2.5">Producto</th>
-                        <th className="p-2.5">Código Lote</th>
-                        <th className="p-2.5 text-center">Cant.</th>
-                        <th className="p-2.5 text-right">P. Compra</th>
-                        <th className="p-2.5 text-right">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60">
-                      {selectedCompra.detalles?.map((det, idx) => (
-                        <tr key={idx} className="hover:bg-slate-800/30">
-                          <td className="p-2.5 font-semibold text-white">{det.productoNombre}</td>
-                          <td className="p-2.5 font-mono text-[#81e6d9]">{det.codigoLote}</td>
-                          <td className="p-2.5 text-center font-bold text-white">{det.cantidad}</td>
-                          <td className="p-2.5 text-right">S/ {det.precioCompraUnitario.toFixed(2)}</td>
-                          <td className="p-2.5 text-right font-bold text-emerald-400">
-                            S/ {(det.subtotal || det.cantidad * det.precioCompraUnitario).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            {/* Tipo de Comprobante */}
+            <div className="space-y-1">
+              <Label htmlFor="tipoComp" className="text-xs font-bold text-slate-700">
+                Tipo Comprobante
+              </Label>
+              <select
+                id="tipoComp"
+                value={tipoComprobante}
+                onChange={(e) => setTipoComprobante(e.target.value)}
+                className="flex h-9 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#319795]/20 focus:border-[#319795]"
+              >
+                <option value="FACTURA">Factura Electrónica</option>
+                <option value="BOLETA">Boleta</option>
+                <option value="GUIA_REMISION">Guía de Remisión</option>
+              </select>
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedCompra(null)}
-                className="border-slate-700 bg-slate-900 text-slate-300"
-              >
-                Cerrar
-              </Button>
+            {/* N° Comprobante */}
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="numComp" className="text-xs font-bold text-slate-700">
+                N° de Serie / Factura
+              </Label>
+              <Input
+                id="numComp"
+                value={numeroComprobante}
+                onChange={(e) => setNumeroComprobante(e.target.value.toUpperCase())}
+                placeholder="Ej: F001-0004589"
+                className="font-mono text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              />
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-1 sm:col-span-3">
+              <Label htmlFor="obs" className="text-xs font-bold text-slate-700">
+                Observaciones / Condiciones de Entrega
+              </Label>
+              <Input
+                id="obs"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Condiciones de pago, guía de transporte, etc."
+                className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Modal Registrar Nueva Compra */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Truck className="size-5 text-[#319795]" />
-                  Registrar Orden de Compra & Lotes
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Ingrese la factura y los lotes que ingresarán al almacén general.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-              >
-                ✕
-              </button>
+          {/* Formulario para Añadir Ítem */}
+          <div className="p-3.5 bg-teal-50/50 border border-teal-100 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2 text-[#319795] font-bold text-xs">
+              <Package className="w-4 h-4" />
+              <span>Añadir Fármaco y Lote al Pedido</span>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
-              {/* Datos de cabecera */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Proveedor *
-                  </label>
-                  <select
-                    required
-                    value={proveedorId}
-                    onChange={(e) => setProveedorId(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-[#319795]"
-                  >
-                    <option value="">Seleccione proveedor...</option>
-                    {proveedores.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.razonSocial} (RUC: {p.ruc})
-                      </option>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Producto */}
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs font-semibold text-slate-700">Fármaco a ingresar</Label>
+                <select
+                  value={selectedProdId}
+                  onChange={(e) => handleProductSelectChange(Number(e.target.value))}
+                  className="flex h-9 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#319795]/20 focus:border-[#319795]"
+                >
+                  {productos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} ({p.codigo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lote */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Lote Asignado</Label>
+                <Input
+                  value={itemLote}
+                  onChange={(e) => setItemLote(e.target.value.toUpperCase())}
+                  placeholder="Ej: LOT-2026-01"
+                  className="font-mono text-xs h-9 rounded-xl border-slate-200 bg-white"
+                />
+              </div>
+
+              {/* Vencimiento */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Fecha de Caducidad</Label>
+                <Input
+                  type="date"
+                  value={itemVencimiento}
+                  onChange={(e) => setItemVencimiento(e.target.value)}
+                  className="text-xs h-9 rounded-xl border-slate-200 bg-white"
+                />
+              </div>
+
+              {/* Cantidad */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Cantidad (u.)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={itemCantidad}
+                  onChange={(e) => setItemCantidad(Number(e.target.value))}
+                  className="font-mono text-xs h-9 rounded-xl border-slate-200 bg-white"
+                />
+              </div>
+
+              {/* Precio Compra */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">P. Unitario Compra (S/.)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0.01}
+                  value={itemPrecio}
+                  onChange={(e) => setItemPrecio(Number(e.target.value))}
+                  className="font-mono text-xs h-9 rounded-xl border-slate-200 bg-white"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddItem}
+              className="w-full text-xs font-bold rounded-xl border-teal-200 text-[#319795] hover:bg-teal-100/70"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              + Agregar Fármaco a la Lista
+            </Button>
+          </div>
+
+          {/* Tabla de Ítems Agregados */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+              <span>Lotes a Recepcionar ({items.length})</span>
+              <span className="text-[#319795] font-mono">
+                Total Acumulado: S/ {totalCalculado.toFixed(2)}
+              </span>
+            </div>
+
+            {items.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                Aún no ha agregado ítems a la orden de compra.
+              </div>
+            ) : (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/70 text-[11px]">
+                      <TableHead>Producto</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Vencimiento</TableHead>
+                      <TableHead className="text-center">Cant.</TableHead>
+                      <TableHead className="text-right">P. Unit</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((it, idx) => {
+                      const prod = productos.find((p) => p.id === it.productoId);
+                      const sub = it.cantidad * it.precioCompraUnitario;
+                      return (
+                        <TableRow key={idx} className="text-xs">
+                          <TableCell className="font-semibold text-slate-800">
+                            {prod?.nombre || `Producto #${it.productoId}`}
+                          </TableCell>
+                          <TableCell className="font-mono text-[11px] text-slate-600">
+                            {it.codigoLote}
+                          </TableCell>
+                          <TableCell className="text-slate-500 text-[11px]">
+                            {it.fechaVencimiento}
+                          </TableCell>
+                          <TableCell className="text-center font-bold">
+                            {it.cantidad}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            S/ {it.precioCompraUnitario.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-bold text-slate-900">
+                            S/ {sub.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right p-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </div>
+      </AppDrawer>
+
+      {/* Drawer: Detalle de Orden de Compra */}
+      <AppDrawer
+        isOpen={!!selectedCompra}
+        onClose={() => setSelectedCompra(null)}
+        title={`Orden de Compra ${selectedCompra?.numeroCompra || ''}`}
+        description="Auditoría de recepción y lotes ingresados al sistema."
+        icon={Receipt}
+        maxWidth="max-w-xl"
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSelectedCompra(null)}
+            className="rounded-xl text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100"
+          >
+            Cerrar Detalle
+          </Button>
+        }
+      >
+        {selectedCompra && (
+          <div className="space-y-4 py-2 text-xs">
+            {/* Cabecera Resumen */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl grid grid-cols-2 gap-2 text-slate-700">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Proveedor</span>
+                <span className="font-bold text-slate-900 text-sm">
+                  {selectedCompra.proveedorRazonSocial || selectedCompra.proveedorNombre || 'Proveedor'}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Fecha Emisión</span>
+                <span className="font-medium text-slate-700">
+                  {(selectedCompra.fechaCompra || selectedCompra.fecha || selectedCompra.createdAt)
+                    ? new Date(selectedCompra.fechaCompra || selectedCompra.fecha || selectedCompra.createdAt!).toLocaleString('es-PE', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })
+                    : '-'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Comprobante</span>
+                <span className="font-mono text-slate-800">
+                  {selectedCompra.tipoComprobante || 'FAC'}: {selectedCompra.numeroFactura || selectedCompra.numeroComprobante || 'S/N'}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Monto Total</span>
+                <span className="text-sm font-extrabold text-[#319795] font-mono">
+                  S/ {(selectedCompra.total ?? selectedCompra.montoTotal ?? 0).toFixed(2)}
+                </span>
+              </div>
+              {selectedCompra.observaciones && (
+                <div className="col-span-2 pt-1 border-t border-slate-200/60 text-slate-500">
+                  <span className="font-semibold text-slate-600">Obs:</span> {selectedCompra.observaciones}
+                </div>
+              )}
+            </div>
+
+            {/* Tabla de Lotes Recibidos */}
+            <div className="space-y-1.5">
+              <span className="font-bold text-slate-800 text-xs">
+                Lotes Ingresados al Inventario ({selectedCompra.detalles?.length || 0})
+              </span>
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 text-[11px]">
+                      <TableHead>Producto</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Vencimiento</TableHead>
+                      <TableHead className="text-center">Cant.</TableHead>
+                      <TableHead className="text-right">P. Unit</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedCompra.detalles?.map((det, idx) => (
+                      <TableRow key={det.id || idx} className="text-xs">
+                        <TableCell className="font-semibold text-slate-800">
+                          {det.productoNombre || `Producto #${det.productoId}`}
+                        </TableCell>
+                        <TableCell className="font-mono text-[11px] text-slate-600">
+                          {det.codigoLote || '-'}
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-[11px]">
+                          {det.fechaVencimiento}
+                        </TableCell>
+                        <TableCell className="text-center font-bold">
+                          {det.cantidad}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          S/ {(det.precioCompraUnitario || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-bold text-slate-900">
+                          S/ {(det.subtotal || det.cantidad * (det.precioCompraUnitario || 0)).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Tipo de Comprobante
-                  </label>
-                  <select
-                    value={tipoComprobante}
-                    onChange={(e) => setTipoComprobante(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-[#319795]"
-                  >
-                    <option value="FACTURA">FACTURA ELECTRÓNICA</option>
-                    <option value="BOLETA">BOLETA DE VENTA</option>
-                    <option value="GUIA_REMISION">GUÍA DE REMISIÓN</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    N° de Factura / Serie
-                  </label>
-                  <Input
-                    required
-                    placeholder="F001-00045892"
-                    value={numeroComprobante}
-                    onChange={(e) => setNumeroComprobante(e.target.value)}
-                    className="bg-slate-950 border-slate-800 text-white font-mono"
-                  />
-                </div>
+                  </TableBody>
+                </Table>
               </div>
-
-              {/* Agregar Items / Lotes */}
-              <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#81e6d9] flex items-center gap-1.5">
-                  <Layers className="size-4" /> Agregar Fármaco y Lote a la Compra
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <div className="sm:col-span-4">
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      Producto
-                    </label>
-                    <select
-                      value={selectedProdId}
-                      onChange={(e) => {
-                        const pid = Number(e.target.value);
-                        setSelectedProdId(pid);
-                        const found = productos.find((p) => p.id === pid);
-                        if (found?.precioCompra) setItemPrecio(found.precioCompra);
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
-                    >
-                      {productos.map((prod) => (
-                        <option key={prod.id} value={prod.id}>
-                          {prod.nombre} ({prod.codigo})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      Código Lote
-                    </label>
-                    <Input
-                      value={itemLote}
-                      onChange={(e) => setItemLote(e.target.value)}
-                      placeholder="LOT-2026-X"
-                      className="h-8 bg-slate-900 border-slate-700 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      F. Vencimiento
-                    </label>
-                    <Input
-                      type="date"
-                      value={itemVencimiento}
-                      onChange={(e) => setItemVencimiento(e.target.value)}
-                      className="h-8 bg-slate-900 border-slate-700 text-xs text-white"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      Cantidad
-                    </label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={itemCantidad}
-                      onChange={(e) => setItemCantidad(Number(e.target.value))}
-                      className="h-8 bg-slate-900 border-slate-700 text-xs text-white font-bold"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      P. Compra S/
-                    </label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0.01}
-                      value={itemPrecio}
-                      onChange={(e) => setItemPrecio(Number(e.target.value))}
-                      className="h-8 bg-slate-900 border-slate-700 text-xs text-white font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleAddItem}
-                    className="bg-[#319795] hover:bg-[#287e7c] text-white text-xs gap-1.5 h-8 font-semibold"
-                  >
-                    <Plus className="size-3.5" /> Agregar a la Lista
-                  </Button>
-                </div>
-              </div>
-
-              {/* Lista de productos agregados */}
-              <div>
-                <h4 className="text-xs font-semibold text-slate-300 mb-2">
-                  Items en la Orden ({items.length})
-                </h4>
-
-                {items.length === 0 ? (
-                  <div className="text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs">
-                    No ha agregado ningún producto aún. Use el panel superior para añadir fármacos.
-                  </div>
-                ) : (
-                  <div className="border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
-                        <tr>
-                          <th className="p-2.5">Producto</th>
-                          <th className="p-2.5">Lote</th>
-                          <th className="p-2.5">Vence</th>
-                          <th className="p-2.5 text-center">Cant.</th>
-                          <th className="p-2.5 text-right">P. Unitario</th>
-                          <th className="p-2.5 text-right">Subtotal</th>
-                          <th className="p-2.5 text-center">Quitar</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {items.map((it, idx) => {
-                          const pObj = productos.find((p) => p.id === it.productoId);
-                          const sub = it.cantidad * it.precioCompraUnitario;
-                          return (
-                            <tr key={idx} className="hover:bg-slate-800/30">
-                              <td className="p-2.5 font-medium text-white">{pObj?.nombre}</td>
-                              <td className="p-2.5 font-mono text-[#81e6d9]">{it.codigoLote}</td>
-                              <td className="p-2.5 text-slate-400">{it.fechaVencimiento}</td>
-                              <td className="p-2.5 text-center font-bold">{it.cantidad}</td>
-                              <td className="p-2.5 text-right">S/ {it.precioCompraUnitario.toFixed(2)}</td>
-                              <td className="p-2.5 text-right font-bold text-emerald-400">
-                                S/ {sub.toFixed(2)}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveItem(idx)}
-                                  className="text-rose-400 hover:text-rose-300 p-1"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Total y Observaciones */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-950/70 rounded-xl border border-slate-800">
-                <div className="w-full sm:w-1/2">
-                  <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                    Observaciones / Notas
-                  </label>
-                  <Input
-                    value={observaciones}
-                    onChange={(e) => setObservaciones(e.target.value)}
-                    placeholder="Entrega en almacén 2, condiciones óptimas de frío..."
-                    className="bg-slate-900 border-slate-800 text-xs text-white"
-                  />
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs text-slate-400 block">Total a Pagar a Proveedor</span>
-                  <span className="text-2xl font-bold font-mono text-emerald-400">
-                    S/ {totalCalculado.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Acciones */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={items.length === 0}
-                  className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold"
-                >
-                  Confirmar y Cargar Inventario
-                </Button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </AppDrawer>
     </div>
   );
 }

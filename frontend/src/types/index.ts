@@ -329,28 +329,36 @@ export interface DetalleCompra {
   id?: number;
   compraId?: number;
   productoId: number;
+  productoCodigo?: string;
   productoNombre?: string;
   loteId?: number;
   codigoLote?: string;
+  loteAsignado?: string;
   fechaVencimiento?: string;
   cantidad: number;
-  precioCompraUnitario: number;
+  precioUnitario?: number;
+  precioCompraUnitario?: number;
   subtotal?: number;
 }
 
 export interface Compra {
   id: number;
-  numeroCompra: string;
+  numeroCompra?: string;
+  numeroFactura?: string;
   proveedorId: number;
   proveedorNombre?: string;
+  proveedorRazonSocial?: string;
   proveedorRuc?: string;
   usuarioId?: number;
   usuarioNombre?: string;
   fecha?: string;
-  montoTotal: number;
+  fechaCompra?: string;
+  total?: number;
+  montoTotal?: number;
   tipoComprobante?: string;
   numeroComprobante?: string;
   observaciones?: string;
+  estado?: string;
   detalles: DetalleCompra[];
   createdAt?: string;
 }

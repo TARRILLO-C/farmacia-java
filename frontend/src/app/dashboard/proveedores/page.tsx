@@ -9,15 +9,38 @@ import {
   Phone,
   Mail,
   MapPin,
-  Edit2,
+  Pencil,
   Trash2,
   RefreshCw,
   CheckCircle2,
   XCircle,
+  X,
+  Archive,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Proveedor, CreateProveedorDTO } from '@/types';
 import {
   getProveedores,
@@ -30,8 +53,21 @@ export default function ProveedoresPage() {
   const [proveedores, setProveedores] = React.useState<Proveedor[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [editingProveedor, setEditingProveedor] = React.useState<Proveedor | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Delete dialog
+  const [proveedorToDelete, setProveedorToDelete] = React.useState<Proveedor | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  // Toast
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const [formData, setFormData] = React.useState<CreateProveedorDTO>({
     ruc: '',
@@ -47,9 +83,10 @@ export default function ProveedoresPage() {
     try {
       setLoading(true);
       const data = await getProveedores();
-      setProveedores(data);
+      setProveedores(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error al cargar proveedores:', error);
+      showToast('error', 'No se pudieron sincronizar los proveedores.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +96,7 @@ export default function ProveedoresPage() {
     loadProveedores();
   }, [loadProveedores]);
 
-  const handleOpenModal = (prov?: Proveedor) => {
+  const handleOpenDrawer = (prov?: Proveedor) => {
     if (prov) {
       setEditingProveedor(prov);
       setFormData({
@@ -83,68 +120,108 @@ export default function ProveedoresPage() {
         activo: true,
       });
     }
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
     setEditingProveedor(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.ruc || !formData.razonSocial) {
-      alert('RUC y Razón Social son campos requeridos.');
+    if (!formData.ruc.trim() || !formData.razonSocial.trim()) {
+      showToast('error', 'RUC y Razón Social son campos requeridos.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (editingProveedor) {
         await updateProveedor(editingProveedor.id, formData);
+        showToast('success', `Proveedor "${formData.razonSocial}" actualizado con éxito.`);
       } else {
         await createProveedor(formData);
+        showToast('success', `Proveedor "${formData.razonSocial}" registrado con éxito.`);
       }
-      handleCloseModal();
+      handleCloseDrawer();
       loadProveedores();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al guardar el proveedor.');
+      showToast('error', error.response?.data?.message || 'Error al procesar el proveedor.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('¿Está seguro de desactivar o eliminar este proveedor?')) {
-      try {
-        await deleteProveedor(id);
-        loadProveedores();
-      } catch (error) {
-        alert('Error al desactivar el proveedor.');
-      }
+  const handleDeleteConfirm = async () => {
+    if (!proveedorToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteProveedor(proveedorToDelete.id);
+      showToast('success', `Proveedor "${proveedorToDelete.razonSocial}" desactivado/eliminado.`);
+      setProveedorToDelete(null);
+      loadProveedores();
+    } catch (error) {
+      showToast('error', 'Error al eliminar el proveedor.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const filtered = proveedores.filter((p) => {
-    const q = search.toLowerCase();
-    return (
-      p.razonSocial.toLowerCase().includes(q) ||
-      p.ruc.includes(q) ||
-      (p.nombreContacto && p.nombreContacto.toLowerCase().includes(q))
+  const filtered = React.useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return proveedores;
+    return proveedores.filter(
+      (p) =>
+        p.razonSocial.toLowerCase().includes(q) ||
+        p.ruc.includes(q) ||
+        (p.nombreContacto && p.nombreContacto.toLowerCase().includes(q))
     );
-  });
+  }, [proveedores, search]);
+
+  const stats = React.useMemo(() => {
+    const total = proveedores.length;
+    const activos = proveedores.filter((p) => p.activo ?? true).length;
+    const conContacto = proveedores.filter((p) => Boolean(p.nombreContacto)).length;
+    const inactivos = total - activos;
+    return { total, activos, conContacto, inactivos };
+  }, [proveedores]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-medium transition-all animate-in fade-in slide-in-from-top-4 ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : 'bg-rose-50 text-rose-900 border-rose-200'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 hover:bg-black/5 rounded-lg ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
-            <Briefcase className="size-4" />
+            <Briefcase className="w-4 h-4" />
             <span>Gestión de Cadena de Suministro</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
             Proveedores Farmacéuticos
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Registro de distribuidores mayoristas, laboratorios autorizados y contactos comerciales.
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Registro de distribuidores mayoristas, droguerías y laboratorios comerciales.
           </p>
         </div>
 
@@ -153,266 +230,425 @@ export default function ProveedoresPage() {
             variant="outline"
             size="sm"
             onClick={loadProveedores}
-            className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300"
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
           >
-            <RefreshCw className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
           </Button>
 
           <Button
-            onClick={() => handleOpenModal()}
-            className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold shadow-md gap-2"
+            size="sm"
+            onClick={() => handleOpenDrawer()}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
           >
-            <Plus className="size-4" />
-            Nuevo Proveedor
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Proveedor</span>
           </Button>
         </div>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por RUC, Razón Social o Contacto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-slate-900/70 border-slate-800 text-white placeholder:text-slate-500 rounded-xl"
-          />
-        </div>
-        <div className="text-xs text-slate-400">
-          Total: <span className="font-bold text-white">{filtered.length}</span> proveedores
-        </div>
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total Proveedores</span>
+            <div className="p-2 rounded-xl bg-slate-100 text-[#1a365d]">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#1a365d]">{stats.total}</span>
+            <span className="text-[11px] text-slate-400">empresas</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-800">Proveedores Activos</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-700">{stats.activos}</span>
+            <span className="text-[11px] text-emerald-600/80">con orden de compra</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-sky-100 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-sky-800">Con Contacto Directo</span>
+            <div className="p-2 rounded-xl bg-sky-50 text-sky-600">
+              <UserCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-sky-700">{stats.conContacto}</span>
+            <span className="text-[11px] text-sky-600/80">ejecutivos registrados</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Inactivos / Bajas</span>
+            <div className="p-2 rounded-xl bg-slate-100 text-slate-500">
+              <XCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-600">{stats.inactivos}</span>
+            <span className="text-[11px] text-slate-400">deshabilitados</span>
+          </div>
+        </Card>
       </div>
 
-      {/* Lista / Grid de Proveedores */}
-      {loading ? (
-        <div className="flex items-center justify-center p-12 text-slate-400">
-          <RefreshCw className="size-8 animate-spin text-[#319795] mr-3" />
-          Cargando proveedores...
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/40 text-center p-8">
-          <Building2 className="size-12 mx-auto text-slate-600 mb-3" />
-          <h3 className="text-lg font-semibold text-white">No se encontraron proveedores</h3>
-          <p className="text-slate-400 text-sm mt-1">
-            {search ? 'No hay resultados que coincidan con la búsqueda.' : 'Aún no se han registrado proveedores.'}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((prov) => (
-            <Card
-              key={prov.id}
-              className="border-slate-800/80 bg-slate-900/60 hover:border-slate-700 transition-all rounded-xl shadow-lg flex flex-col justify-between overflow-hidden"
-            >
-              <CardHeader className="p-4 pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-[#81e6d9] font-bold border border-slate-700">
-                      RUC: {prov.ruc}
-                    </span>
-                    <CardTitle className="text-base font-bold text-white mt-2 leading-snug line-clamp-1">
-                      {prov.razonSocial}
-                    </CardTitle>
-                  </div>
-                  {prov.activo ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium">
-                      <CheckCircle2 className="size-3" /> Activo
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 font-medium">
-                      <XCircle className="size-3" /> Inactivo
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 pt-1 space-y-2 text-xs text-slate-300">
-                {prov.nombreContacto && (
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <span className="text-slate-500 font-medium">Contacto:</span>
-                    <span className="font-semibold text-white">{prov.nombreContacto}</span>
-                  </div>
-                )}
-                {prov.telefono && (
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Phone className="size-3.5 text-slate-500 shrink-0" />
-                    <span>{prov.telefono}</span>
-                  </div>
-                )}
-                {prov.email && (
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Mail className="size-3.5 text-slate-500 shrink-0" />
-                    <span className="truncate">{prov.email}</span>
-                  </div>
-                )}
-                {prov.direccion && (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <MapPin className="size-3.5 text-slate-500 shrink-0" />
-                    <span className="truncate">{prov.direccion}</span>
-                  </div>
-                )}
-              </CardContent>
-
-              <div className="border-t border-slate-800/80 p-3 bg-slate-950/40 flex items-center justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleOpenModal(prov)}
-                  className="h-8 text-slate-300 hover:text-white hover:bg-slate-800"
-                >
-                  <Edit2 className="size-3.5 mr-1" /> Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(prov.id)}
-                  className="h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                >
-                  <Trash2 className="size-3.5 mr-1" /> Desactivar
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Modal Crear / Editar */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  {editingProveedor ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor'}
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Complete los datos de la empresa proveedora.
-                </p>
-              </div>
+      {/* Contenedor Principal: Filtros y Tabla */}
+      <Card className="bg-white border border-slate-200/80 shadow-xs rounded-2xl overflow-hidden">
+        {/* Barra de Filtro */}
+        <div className="p-4 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por RUC, Razón Social o Contacto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-8 h-9 text-xs bg-white rounded-xl border-slate-200 shadow-none focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+            {search && (
               <button
-                onClick={handleCloseModal}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
-            </div>
+            )}
+          </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    RUC (11 dígitos) *
-                  </label>
-                  <Input
-                    required
-                    maxLength={11}
-                    value={formData.ruc}
-                    onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                    placeholder="20123456789"
-                    className="bg-slate-950 border-slate-800 text-white font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Teléfono
-                  </label>
-                  <Input
-                    value={formData.telefono || ''}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    placeholder="01-4458920 / 999888777"
-                    className="bg-slate-950 border-slate-800 text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Razón Social *
-                </label>
-                <Input
-                  required
-                  value={formData.razonSocial}
-                  onChange={(e) => setFormData({ ...formData, razonSocial: e.target.value })}
-                  placeholder="Droguería Distribuidora S.A.C."
-                  className="bg-slate-950 border-slate-800 text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Nombre de Contacto
-                  </label>
-                  <Input
-                    value={formData.nombreContacto || ''}
-                    onChange={(e) => setFormData({ ...formData, nombreContacto: e.target.value })}
-                    placeholder="Lic. Carlos Mendoza"
-                    className="bg-slate-950 border-slate-800 text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Correo Electrónico
-                  </label>
-                  <Input
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="ventas@proveedor.com"
-                    className="bg-slate-950 border-slate-800 text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Dirección Fiscal
-                </label>
-                <Input
-                  value={formData.direccion || ''}
-                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  placeholder="Av. Las Industrias 1020, Lima"
-                  className="bg-slate-950 border-slate-800 text-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="activo"
-                  checked={formData.activo}
-                  onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                  className="size-4 rounded border-slate-700 bg-slate-950 text-[#319795]"
-                />
-                <label htmlFor="activo" className="text-xs text-slate-300 font-medium">
-                  Proveedor Activo en el Sistema
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseModal}
-                  className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold"
-                >
-                  {editingProveedor ? 'Actualizar Proveedor' : 'Guardar Proveedor'}
-                </Button>
-              </div>
-            </form>
+          <div className="text-xs text-slate-500 font-medium self-end sm:self-center">
+            Mostrando <span className="font-bold text-slate-800">{filtered.length}</span> de{' '}
+            {proveedores.length} proveedores
           </div>
         </div>
-      )}
+
+        {/* Tabla */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-36">RUC</TableHead>
+              <TableHead>Razón Social & Dirección</TableHead>
+              <TableHead>Contacto Comercial</TableHead>
+              <TableHead>Comunicación</TableHead>
+              <TableHead className="text-center">Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx} className="animate-pulse">
+                  <TableCell><div className="h-4 w-28 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-52 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-32 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-36 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell className="text-center"><div className="h-5 w-16 bg-slate-200 rounded-full mx-auto"></div></TableCell>
+                  <TableCell className="text-right"><div className="h-6 w-16 bg-slate-200 rounded-md ml-auto"></div></TableCell>
+                </TableRow>
+              ))
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-14 text-center">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
+                    <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
+                      <Archive className="w-8 h-8" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">
+                      {search ? 'Sin coincidencias para la búsqueda' : 'No hay proveedores registrados'}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {search
+                        ? 'Verifique los términos de búsqueda o limpie el filtro.'
+                        : 'Comience añadiendo distribuidores con el botón "Nuevo Proveedor".'}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((prov) => {
+                const isActivo = prov.activo ?? true;
+
+                return (
+                  <TableRow key={prov.id} className="group hover:bg-slate-50/70 transition-colors">
+                    {/* RUC */}
+                    <TableCell>
+                      <span className="font-mono text-xs font-bold text-[#1a365d] bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
+                        {prov.ruc}
+                      </span>
+                    </TableCell>
+
+                    {/* Razón Social y Dirección */}
+                    <TableCell>
+                      <div className="flex flex-col min-w-[200px]">
+                        <span className="font-bold text-slate-900 text-sm group-hover:text-[#319795] transition-colors">
+                          {prov.razonSocial}
+                        </span>
+                        {prov.direccion && (
+                          <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate max-w-xs">{prov.direccion}</span>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Contacto */}
+                    <TableCell>
+                      {prov.nombreContacto ? (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                          <UserCheck className="w-3.5 h-3.5 text-teal-600" />
+                          <span>{prov.nombreContacto}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No especificado</span>
+                      )}
+                    </TableCell>
+
+                    {/* Comunicación */}
+                    <TableCell>
+                      <div className="flex flex-col gap-1 text-xs text-slate-600">
+                        {prov.telefono && (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{prov.telefono}</span>
+                          </div>
+                        )}
+                        {prov.email && (
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-slate-500 truncate max-w-[180px]">{prov.email}</span>
+                          </div>
+                        )}
+                        {!prov.telefono && !prov.email && (
+                          <span className="text-slate-400 italic">Sin datos</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Estado */}
+                    <TableCell className="text-center">
+                      {isActivo ? (
+                        <Badge variant="emerald" className="text-[11px] px-2.5 py-0.5">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Activo
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[11px] px-2.5 py-0.5">
+                          <XCircle className="w-3 h-3 mr-1" /> Inactivo
+                        </Badge>
+                      )}
+                    </TableCell>
+
+                    {/* Acciones */}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Editar proveedor"
+                          onClick={() => handleOpenDrawer(prov)}
+                          className="h-8 w-8 text-slate-500 hover:text-[#319795] hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Eliminar o dar de baja"
+                          onClick={() => setProveedorToDelete(prov)}
+                          className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Drawer Alta / Edición de Proveedor */}
+      <AppDrawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title={editingProveedor ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+        description="Complete la ficha técnica y fiscal del proveedor o laboratorio distribuidor."
+        icon={Building2}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitText={editingProveedor ? 'Actualizar Ficha' : 'Registrar Proveedor'}
+        cancelText="Cancelar"
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-4 py-2">
+          {/* RUC */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ruc" className="text-xs font-bold text-slate-700">
+              Número de RUC (11 dígitos) <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="ruc"
+              maxLength={11}
+              value={formData.ruc}
+              onChange={(e) => setFormData({ ...formData, ruc: e.target.value.replace(/\D/g, '') })}
+              placeholder="Ej: 20512345678"
+              className="font-mono text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              required
+            />
+          </div>
+
+          {/* Razón Social */}
+          <div className="space-y-1.5">
+            <Label htmlFor="razonSocial" className="text-xs font-bold text-slate-700">
+              Razón Social / Nombre Comercial <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="razonSocial"
+              value={formData.razonSocial}
+              onChange={(e) => setFormData({ ...formData, razonSocial: e.target.value })}
+              placeholder="Ej: Droguería & Distribuidora Médica del Norte S.A.C."
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              required
+            />
+          </div>
+
+          {/* Contacto */}
+          <div className="space-y-1.5">
+            <Label htmlFor="nombreContacto" className="text-xs font-bold text-slate-700">
+              Persona de Contacto / Asesor Comercial
+            </Label>
+            <Input
+              id="nombreContacto"
+              value={formData.nombreContacto || ''}
+              onChange={(e) => setFormData({ ...formData, nombreContacto: e.target.value })}
+              placeholder="Ej: Lic. Carlos Mendoza"
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+          </div>
+
+          {/* Teléfono y Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="telefono" className="text-xs font-bold text-slate-700">
+                Teléfono de Contacto
+              </Label>
+              <Input
+                id="telefono"
+                value={formData.telefono || ''}
+                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                placeholder="Ej: 01-445-9870"
+                className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-bold text-slate-700">
+                Correo Institucional
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="ventas@distribuidora.pe"
+                className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              />
+            </div>
+          </div>
+
+          {/* Dirección */}
+          <div className="space-y-1.5">
+            <Label htmlFor="direccion" className="text-xs font-bold text-slate-700">
+              Dirección Fiscal o Almacén
+            </Label>
+            <Input
+              id="direccion"
+              value={formData.direccion || ''}
+              onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+              placeholder="Ej: Av. Los Industriales 450, Lima"
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+          </div>
+
+          {/* Estado Habilitado */}
+          <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+            <div>
+              <Label htmlFor="activo" className="text-xs font-bold text-slate-800 cursor-pointer">
+                Proveedor Activo para Compras
+              </Label>
+              <p className="text-[11px] text-slate-400">
+                Habilita o deshabilita la emisión de nuevas órdenes de compra hacia este proveedor.
+              </p>
+            </div>
+            <Switch
+              id="activo"
+              checked={formData.activo}
+              onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
+            />
+          </div>
+        </div>
+      </AppDrawer>
+
+      {/* Diálogo Confirmación Eliminar */}
+      <Dialog open={!!proveedorToDelete} onOpenChange={(open) => !open && setProveedorToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-slate-900">
+                  Desactivar Proveedor
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                  El proveedor dejará de figurar en el registro de órdenes de abastecimiento.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <p className="text-xs text-slate-600 my-2">
+            ¿Confirma que desea dar de baja a{' '}
+            <strong className="text-slate-900">&quot;{proveedorToDelete?.razonSocial}&quot;</strong> (RUC: {proveedorToDelete?.ruc})?
+          </p>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => setProveedorToDelete(null)}
+              className="rounded-xl text-xs font-semibold border-slate-200 text-slate-600 hover:bg-slate-100"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isDeleting}
+              onClick={handleDeleteConfirm}
+              className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+            >
+              {isDeleting ? 'Procesando...' : 'Confirmar Baja'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

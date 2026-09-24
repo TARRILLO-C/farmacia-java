@@ -25,7 +25,6 @@ import { HistorialClienteModal } from '@/components/modules/clientes/HistorialCl
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { HeaderActions, HeaderBadge } from '@/components/layout/HeaderContext';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -174,34 +173,43 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* Badge y Acciones inyectadas en la cabecera superior */}
-      <HeaderBadge>
-        <Badge variant="teal" className="font-bold text-[10px]">
-          {clientes.length} registrados
-        </Badge>
-      </HeaderBadge>
+      {/* Encabezado Principal Visible */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <Users className="w-4 h-4" />
+            <span>Gestión de Clientes & Fidelización</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Clientes y CRM
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Registro de pacientes, historial comercial y programa de beneficios ClienteAmigo.
+          </p>
+        </div>
 
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchClientes}
-          disabled={loading}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Recargar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchClientes}
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
+          </Button>
 
-        <Button
-          size="sm"
-          onClick={handleOpenCreateModal}
-          className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Nuevo Cliente</span>
-        </Button>
-      </HeaderActions>
+          <Button
+            size="sm"
+            onClick={handleOpenCreateModal}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Nuevo Cliente</span>
+          </Button>
+        </div>
+      </div>
 
       {/* Banner ClienteAmigo */}
       <Card className="p-4 bg-gradient-to-r from-[#1a365d] via-[#1f4270] to-[#266266] text-white border-0 shadow-md">

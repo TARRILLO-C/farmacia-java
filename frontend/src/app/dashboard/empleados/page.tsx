@@ -6,17 +6,40 @@ import {
   Plus,
   Search,
   Phone,
-  Edit2,
+  Pencil,
   Trash2,
   RefreshCw,
   CheckCircle2,
   XCircle,
-  CreditCard,
   Users,
+  X,
+  Archive,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { AppDrawer } from '@/components/common/AppDrawer';
 import { Empleado, CreateEmpleadoDTO } from '@/types';
 import {
   getEmpleados,
@@ -29,8 +52,21 @@ export default function EmpleadosPage() {
   const [empleados, setEmpleados] = React.useState<Empleado[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [editingEmpleado, setEditingEmpleado] = React.useState<Empleado | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Delete dialog
+  const [empleadoToDelete, setEmpleadoToDelete] = React.useState<Empleado | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  // Toast
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const [formData, setFormData] = React.useState<CreateEmpleadoDTO>({
     dni: '',
@@ -44,9 +80,10 @@ export default function EmpleadosPage() {
     try {
       setLoading(true);
       const data = await getEmpleados();
-      setEmpleados(data);
+      setEmpleados(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
+      showToast('error', 'No se pudieron sincronizar los empleados.');
     } finally {
       setLoading(false);
     }
@@ -56,7 +93,7 @@ export default function EmpleadosPage() {
     loadEmpleados();
   }, [loadEmpleados]);
 
-  const handleOpenModal = (emp?: Empleado) => {
+  const handleOpenDrawer = (emp?: Empleado) => {
     if (emp) {
       setEditingEmpleado(emp);
       setFormData({
@@ -76,64 +113,110 @@ export default function EmpleadosPage() {
         activo: true,
       });
     }
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
     setEditingEmpleado(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.dni || !formData.nombres || !formData.apellidos) {
-      alert('DNI, Nombres y Apellidos son obligatorios.');
+    if (!formData.dni.trim() || !formData.nombres.trim() || !formData.apellidos.trim()) {
+      showToast('error', 'DNI, Nombres y Apellidos son obligatorios.');
       return;
     }
 
+    if (formData.dni.length !== 8) {
+      showToast('error', 'El DNI debe contener exactamente 8 dígitos numéricos.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       if (editingEmpleado) {
         await updateEmpleado(editingEmpleado.id, formData);
+        showToast('success', `Empleado "${formData.nombres} ${formData.apellidos}" actualizado.`);
       } else {
         await createEmpleado(formData);
+        showToast('success', `Empleado "${formData.nombres} ${formData.apellidos}" registrado.`);
       }
-      handleCloseModal();
+      handleCloseDrawer();
       loadEmpleados();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al guardar el empleado.');
+      showToast('error', error.response?.data?.message || 'Error al procesar el empleado.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('¿Está seguro de desactivar o eliminar este colaborador?')) {
-      try {
-        await deleteEmpleado(id);
-        loadEmpleados();
-      } catch (error) {
-        alert('Error al desactivar empleado.');
-      }
+  const handleDeleteConfirm = async () => {
+    if (!empleadoToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteEmpleado(empleadoToDelete.id);
+      showToast('success', `Colaborador "${empleadoToDelete.nombres} ${empleadoToDelete.apellidos}" desactivado.`);
+      setEmpleadoToDelete(null);
+      loadEmpleados();
+    } catch (error) {
+      showToast('error', 'Error al desactivar el empleado.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const filtered = empleados.filter((emp) => {
-    const q = search.toLowerCase();
-    const fullName = `${emp.nombres} ${emp.apellidos}`.toLowerCase();
-    return fullName.includes(q) || emp.dni.includes(q);
-  });
+  const filtered = React.useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return empleados;
+    return empleados.filter((emp) => {
+      const fullName = `${emp.nombres} ${emp.apellidos}`.toLowerCase();
+      return fullName.includes(q) || emp.dni.includes(q) || (emp.telefono && emp.telefono.includes(q));
+    });
+  }, [empleados, search]);
+
+  const stats = React.useMemo(() => {
+    const total = empleados.length;
+    const activos = empleados.filter((e) => e.activo ?? true).length;
+    const conTelefono = empleados.filter((e) => Boolean(e.telefono)).length;
+    const inactivos = total - activos;
+    return { total, activos, conTelefono, inactivos };
+  }, [empleados]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-medium transition-all animate-in fade-in slide-in-from-top-4 ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : 'bg-rose-50 text-rose-900 border-rose-200'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 hover:bg-black/5 rounded-lg ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
-            <UserCheck className="size-4" />
+            <UserCheck className="w-4 h-4" />
             <span>Talento Humano & Personal Clínico</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
             Personal y Empleados
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
             Registro del personal farmacéutico, químicos regentes y cajeros autorizados para operar el sistema.
           </p>
         </div>
@@ -143,222 +226,374 @@ export default function EmpleadosPage() {
             variant="outline"
             size="sm"
             onClick={loadEmpleados}
-            className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300"
+            disabled={loading}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs"
           >
-            <RefreshCw className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refrescar</span>
           </Button>
 
           <Button
-            onClick={() => handleOpenModal()}
-            className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold shadow-md gap-2"
+            size="sm"
+            onClick={() => handleOpenDrawer()}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
           >
-            <Plus className="size-4" />
-            Nuevo Empleado
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Empleado</span>
           </Button>
         </div>
       </div>
 
-      {/* Barra de búsqueda */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por DNI, Nombres o Apellidos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-slate-900/70 border-slate-800 text-white placeholder:text-slate-500 rounded-xl"
-          />
-        </div>
-        <div className="text-xs text-slate-400">
-          Total: <span className="font-bold text-white">{filtered.length}</span> colaboradores
-        </div>
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total Colaboradores</span>
+            <div className="p-2 rounded-xl bg-slate-100 text-[#1a365d]">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#1a365d]">{stats.total}</span>
+            <span className="text-[11px] text-slate-400">registrados</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-800">Personal Activo</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-700">{stats.activos}</span>
+            <span className="text-[11px] text-emerald-600/80">en nómina</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-sky-100 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-sky-800">Con Contacto Móvil</span>
+            <div className="p-2 rounded-xl bg-sky-50 text-sky-600">
+              <Phone className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-sky-700">{stats.conTelefono}</span>
+            <span className="text-[11px] text-sky-600/80">con teléfono</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Inactivos / Cesados</span>
+            <div className="p-2 rounded-xl bg-slate-100 text-slate-500">
+              <XCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-600">{stats.inactivos}</span>
+            <span className="text-[11px] text-slate-400">deshabilitados</span>
+          </div>
+        </Card>
       </div>
 
-      {/* Grid de Empleados */}
-      {loading ? (
-        <div className="flex items-center justify-center p-12 text-slate-400">
-          <RefreshCw className="size-8 animate-spin text-[#319795] mr-3" />
-          Cargando colaboradores...
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/40 text-center p-8">
-          <Users className="size-12 mx-auto text-slate-600 mb-3" />
-          <h3 className="text-lg font-semibold text-white">No se encontraron empleados</h3>
-          <p className="text-slate-400 text-sm mt-1">
-            {search ? 'No hay resultados que coincidan con la búsqueda.' : 'Aún no se han registrado colaboradores.'}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((emp) => (
-            <Card
-              key={emp.id}
-              className="border-slate-800/80 bg-slate-900/60 hover:border-slate-700 transition-all rounded-xl shadow-lg flex flex-col justify-between"
-            >
-              <CardHeader className="p-4 pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-[#81e6d9] font-bold border border-slate-700">
-                      DNI: {emp.dni}
-                    </span>
-                    <CardTitle className="text-base font-bold text-white mt-2">
-                      {emp.nombres} {emp.apellidos}
-                    </CardTitle>
-                  </div>
-                  {emp.activo ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium">
-                      <CheckCircle2 className="size-3" /> Activo
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 font-medium">
-                      <XCircle className="size-3" /> Inactivo
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 pt-1 space-y-2 text-xs text-slate-300">
-                {emp.telefono && (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Phone className="size-3.5 text-slate-500 shrink-0" />
-                    <span>{emp.telefono}</span>
-                  </div>
-                )}
-              </CardContent>
-
-              <div className="border-t border-slate-800/80 p-3 bg-slate-950/40 flex items-center justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleOpenModal(emp)}
-                  className="h-8 text-slate-300 hover:text-white hover:bg-slate-800"
-                >
-                  <Edit2 className="size-3.5 mr-1" /> Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(emp.id)}
-                  className="h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                >
-                  <Trash2 className="size-3.5 mr-1" /> Desactivar
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Modal Crear / Editar */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  {editingEmpleado ? 'Editar Colaborador' : 'Registrar Colaborador'}
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Ingrese la información del personal institucional.
-                </p>
-              </div>
+      {/* Contenedor Principal: Filtros y Tabla */}
+      <Card className="bg-white border border-slate-200/80 shadow-xs rounded-2xl overflow-hidden">
+        {/* Barra de Filtro */}
+        <div className="p-4 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por DNI, Nombres o Apellidos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-8 h-9 text-xs bg-white rounded-xl border-slate-200 shadow-none focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+            {search && (
               <button
-                onClick={handleCloseModal}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
-            </div>
+            )}
+          </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Documento Nacional de Identidad (DNI) *
-                </label>
-                <Input
-                  required
-                  maxLength={8}
-                  value={formData.dni}
-                  onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                  placeholder="70891234"
-                  className="bg-slate-950 border-slate-800 text-white font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Nombres *
-                  </label>
-                  <Input
-                    required
-                    value={formData.nombres}
-                    onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
-                    placeholder="Ana María"
-                    className="bg-slate-950 border-slate-800 text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Apellidos *
-                  </label>
-                  <Input
-                    required
-                    value={formData.apellidos}
-                    onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
-                    placeholder="López Silva"
-                    className="bg-slate-950 border-slate-800 text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Teléfono de Contacto
-                </label>
-                <Input
-                  value={formData.telefono || ''}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  placeholder="987654321"
-                  className="bg-slate-950 border-slate-800 text-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="activoEmp"
-                  checked={formData.activo}
-                  onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                  className="size-4 rounded border-slate-700 bg-slate-950 text-[#319795]"
-                />
-                <label htmlFor="activoEmp" className="text-xs text-slate-300 font-medium">
-                  Colaborador en Actividad
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseModal}
-                  className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-[#319795] hover:bg-[#287e7c] text-white font-semibold"
-                >
-                  Guardar
-                </Button>
-              </div>
-            </form>
+          <div className="text-xs text-slate-500 font-medium self-end sm:self-center">
+            Mostrando <span className="font-bold text-slate-800">{filtered.length}</span> de{' '}
+            {empleados.length} colaboradores
           </div>
         </div>
-      )}
+
+        {/* Tabla */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-36">DNI</TableHead>
+              <TableHead>Colaborador / Funcionario</TableHead>
+              <TableHead>Teléfono Móvil</TableHead>
+              <TableHead className="text-center">Estado Laboral</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx} className="animate-pulse">
+                  <TableCell><div className="h-4 w-24 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-48 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell><div className="h-4 w-28 bg-slate-200 rounded-md"></div></TableCell>
+                  <TableCell className="text-center"><div className="h-5 w-16 bg-slate-200 rounded-full mx-auto"></div></TableCell>
+                  <TableCell className="text-right"><div className="h-6 w-16 bg-slate-200 rounded-md ml-auto"></div></TableCell>
+                </TableRow>
+              ))
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-14 text-center">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
+                    <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400">
+                      <Archive className="w-8 h-8" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">
+                      {search ? 'Sin resultados para la búsqueda' : 'No hay empleados registrados'}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {search
+                        ? 'Verifique los datos ingresados o limpie el filtro de búsqueda.'
+                        : 'Comience añadiendo personal con el botón "Nuevo Empleado".'}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((emp) => {
+                const isActivo = emp.activo ?? true;
+
+                return (
+                  <TableRow key={emp.id} className="group hover:bg-slate-50/70 transition-colors">
+                    {/* DNI */}
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#1a365d] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 w-fit">
+                        <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{emp.dni}</span>
+                      </div>
+                    </TableCell>
+
+                    {/* Colaborador */}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 text-sm group-hover:text-[#319795] transition-colors">
+                          {emp.nombres} {emp.apellidos}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          ID Empleado #{emp.id}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Teléfono */}
+                    <TableCell>
+                      {emp.telefono ? (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{emp.telefono}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No registrado</span>
+                      )}
+                    </TableCell>
+
+                    {/* Estado */}
+                    <TableCell className="text-center">
+                      {isActivo ? (
+                        <Badge variant="emerald" className="text-[11px] px-2.5 py-0.5">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Activo
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[11px] px-2.5 py-0.5">
+                          <XCircle className="w-3 h-3 mr-1" /> Inactivo
+                        </Badge>
+                      )}
+                    </TableCell>
+
+                    {/* Acciones */}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Editar colaborador"
+                          onClick={() => handleOpenDrawer(emp)}
+                          className="h-8 w-8 text-slate-500 hover:text-[#319795] hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Dar de baja"
+                          onClick={() => setEmpleadoToDelete(emp)}
+                          className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Drawer Alta / Edición de Empleado */}
+      <AppDrawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title={editingEmpleado ? 'Editar Colaborador' : 'Nuevo Colaborador'}
+        description="Ficha del personal para asignación de turnos y control de acceso."
+        icon={Users}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitText={editingEmpleado ? 'Guardar Cambios' : 'Registrar Empleado'}
+        cancelText="Cancelar"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4 py-2">
+          {/* DNI */}
+          <div className="space-y-1.5">
+            <Label htmlFor="dni" className="text-xs font-bold text-slate-700">
+              Número de DNI (8 dígitos) <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="dni"
+              maxLength={8}
+              value={formData.dni}
+              onChange={(e) => setFormData({ ...formData, dni: e.target.value.replace(/\D/g, '') })}
+              placeholder="Ej: 72891234"
+              className="font-mono text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              required
+            />
+          </div>
+
+          {/* Nombres */}
+          <div className="space-y-1.5">
+            <Label htmlFor="nombres" className="text-xs font-bold text-slate-700">
+              Nombres <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="nombres"
+              value={formData.nombres}
+              onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
+              placeholder="Ej: Juan Carlos"
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              required
+            />
+          </div>
+
+          {/* Apellidos */}
+          <div className="space-y-1.5">
+            <Label htmlFor="apellidos" className="text-xs font-bold text-slate-700">
+              Apellidos Completos <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="apellidos"
+              value={formData.apellidos}
+              onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
+              placeholder="Ej: Pérez Quispe"
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+              required
+            />
+          </div>
+
+          {/* Teléfono */}
+          <div className="space-y-1.5">
+            <Label htmlFor="telefono" className="text-xs font-bold text-slate-700">
+              Teléfono Celular
+            </Label>
+            <Input
+              id="telefono"
+              value={formData.telefono || ''}
+              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              placeholder="Ej: 987654321"
+              className="text-xs h-9 rounded-xl border-slate-200 focus-visible:ring-[#319795]/20 focus-visible:border-[#319795]"
+            />
+          </div>
+
+          {/* Estado Activo */}
+          <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+            <div>
+              <Label htmlFor="activo" className="text-xs font-bold text-slate-800 cursor-pointer">
+                Colaborador Activo
+              </Label>
+              <p className="text-[11px] text-slate-400">
+                Determina si el colaborador está habilitado para ingresar al sistema y operar cajas.
+              </p>
+            </div>
+            <Switch
+              id="activo"
+              checked={formData.activo}
+              onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
+            />
+          </div>
+        </div>
+      </AppDrawer>
+
+      {/* Diálogo Confirmación Eliminar */}
+      <Dialog open={!!empleadoToDelete} onOpenChange={(open) => !open && setEmpleadoToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-slate-900">
+                  Desactivar Colaborador
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                  El colaborador perderá el acceso a las funciones del sistema.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <p className="text-xs text-slate-600 my-2">
+            ¿Confirma que desea dar de baja al empleado{' '}
+            <strong className="text-slate-900">
+              &quot;{empleadoToDelete?.nombres} {empleadoToDelete?.apellidos}&quot;
+            </strong>{' '}
+            (DNI: {empleadoToDelete?.dni})?
+          </p>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => setEmpleadoToDelete(null)}
+              className="rounded-xl text-xs font-semibold border-slate-200 text-slate-600 hover:bg-slate-100"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isDeleting}
+              onClick={handleDeleteConfirm}
+              className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+            >
+              {isDeleting ? 'Procesando...' : 'Confirmar Baja'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

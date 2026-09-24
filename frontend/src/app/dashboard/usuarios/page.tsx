@@ -30,7 +30,6 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import { HeaderActions } from '@/components/layout/HeaderContext';
 import RoleGuard from '@/components/auth/RoleGuard';
 import { UsuarioDrawer } from './components/UsuarioDrawer';
 import {
@@ -146,31 +145,46 @@ export default function UsuariosPage() {
   return (
     <RoleGuard allowedRoles={['ADMIN']}>
       <div className="space-y-6">
-        {/* Acciones en la cabecera superior */}
-        <HeaderActions>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchUsuariosList}
-            disabled={refreshing}
-            className="gap-2 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
-            <span>Actualizar</span>
-          </Button>
+        {/* Encabezado Principal Visible */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+          <div>
+            <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+              <Shield className="w-4 h-4" />
+              <span>Seguridad & Control de Accesos (RBAC)</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+              Usuarios del Sistema
+            </h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+              Gestión de credenciales, roles y permisos operativos para farmacéuticos y cajeros.
+            </p>
+          </div>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setUsuarioToEdit(null);
-              setIsModalOpen(true);
-            }}
-            className="gap-2 text-xs font-bold bg-[#1a365d] hover:bg-[#142a4a] text-white shadow-xs cursor-pointer rounded-xl"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Nuevo Usuario</span>
-          </Button>
-        </HeaderActions>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchUsuariosList}
+              disabled={refreshing}
+              className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
+              <span>Refrescar</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setUsuarioToEdit(null);
+                setIsModalOpen(true);
+              }}
+              className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#319795] hover:bg-[#287e7c] text-white shadow-xs active:scale-[0.98] cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Nuevo Usuario</span>
+            </Button>
+          </div>
+        </div>
 
         {/* Notificaciones */}
         {notification && (

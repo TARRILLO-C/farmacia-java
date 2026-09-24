@@ -31,7 +31,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { HeaderActions } from '@/components/layout/HeaderContext';
 import {
   Table,
   TableHeader,
@@ -308,29 +307,44 @@ export default function ReportesPage() {
   return (
     <RoleGuard allowedRoles={['ADMIN']}>
       <div className="space-y-6">
-      {/* Acciones inyectadas en la cabecera superior */}
-      <HeaderActions>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchData}
-          disabled={refreshing}
-          className="gap-2 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
-          <span>Actualizar Datos</span>
-        </Button>
+      {/* Encabezado Principal */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[#319795] font-semibold text-sm">
+            <BarChart3 className="w-4 h-4" />
+            <span>Inteligencia de Negocio & Analítica</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1a365d] mt-1">
+            Reportes y Métricas
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+            Analítica de rendimiento comercial, rotación de fármacos y métricas financieras.
+          </p>
+        </div>
 
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => window.print()}
-          className="gap-2 text-xs font-bold bg-[#1a365d] hover:bg-[#142a4a] text-white shadow-xs cursor-pointer"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Imprimir / PDF</span>
-        </Button>
-      </HeaderActions>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={refreshing}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#319795]' : ''}`} />
+            <span>Actualizar Datos</span>
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => window.print()}
+            className="h-8 sm:h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#1a365d] hover:bg-[#142a4a] text-white shadow-xs cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Imprimir / PDF</span>
+          </Button>
+        </div>
+      </div>
 
       {/* Barra de Filtro de Período de Análisis */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 px-5 rounded-2xl border border-slate-200/80 shadow-2xs">
