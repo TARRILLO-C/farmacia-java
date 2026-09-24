@@ -1,12 +1,10 @@
 package com.sg.farmacia.model;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -14,16 +12,25 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "fidelizacion")
+@EqualsAndHashCode(exclude = "fidelizacion")
 @Entity
-@Table(name = "clientes")
+@Table(name = "clientes", indexes = {
+        @Index(name = "idx_cliente_numero_documento", columnList = "numero_documento", unique = true)
+})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "dni_ruc", nullable = false, unique = true, length = 20)
-    private String dniRuc;
+    @Builder.Default
+    @Column(name = "tipo_documento", nullable = false, length = 15)
+    private String tipoDocumento = "DNI";
+
+    @Column(name = "numero_documento", nullable = false, unique = true, length = 20)
+    private String numeroDocumento;
 
     @Column(name = "nombre_completo", nullable = false, length = 150)
     private String nombreCompleto;
@@ -37,29 +44,12 @@ public class Cliente {
     @Column(length = 100)
     private String email;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_cliente", nullable = false, length = 20)
     @Builder.Default
-    private TipoCliente tipoCliente = TipoCliente.NUEVO;
-
-    @Column(name = "es_cliente_amigo", nullable = false)
-    @Builder.Default
-    private boolean esClienteAmigo = false;
-
-    @Column(name = "numero_cliente_amigo", unique = true, length = 30)
-    private String numeroClienteAmigo;
-
-    @Column(name = "porcentaje_descuento", nullable = false)
-    @Builder.Default
-    private Double porcentajeDescuento = 0.0;
-
-    @Column(name = "puntos_fidelidad", nullable = false)
-    @Builder.Default
-    private Integer puntosFidelidad = 0;
-
     @Column(nullable = false)
-    @Builder.Default
     private Boolean activo = true;
+
+    @OneToOne(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private FidelizacionCrm fidelizacion;
 
     @Builder.Default
     @Column(name = "created_at", updatable = false)
@@ -69,37 +59,79 @@ public class Cliente {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @PrePersist
+    public void prePersist() {
+        if (this.tipoDocumento == null || this.tipoDocumento.isBlank()) {
+            this.tipoDocumento = "DNI";
+        }
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
     // =========================================================================
-    // Getters y Setters de compatibilidad con Frontend Next.js (documentoIdentidad, nombre, apellido, codigoClienteAmigo)
+    // Getters y Setters de compatibilidad con Frontend Next.js y servicios previos
     // =========================================================================
+
+    @JsonGetter("dniRuc")
+    public String getDniRuc() {
+        return this.numeroDocumento;
+    }
+
+    @JsonSetter("dniRuc")
+    public void setDniRuc(String dniRuc) {
+        if (this.numeroDocumento == null || this.numeroDocumento.isEmpty()) {
+            this.numeroDocumento = dniRuc;
+        }
+    }
 
     @JsonGetter("documentoIdentidad")
     public String getDocumentoIdentidad() {
-        return this.dniRuc;
+        return this.numeroDocumento;
     }
 
     @JsonSetter("documentoIdentidad")
     public void setDocumentoIdentidad(String documentoIdentidad) {
-        if (this.dniRuc == null || this.dniRuc.isEmpty()) {
-            this.dniRuc = documentoIdentidad;
+        if (this.numeroDocumento == null || this.numeroDocumento.isEmpty()) {
+            this.numeroDocumento = documentoIdentidad;
         }
+    }
+
+    @JsonGetter("esClienteAmigo")
+    public boolean isEsClienteAmigo() {
+        return this.fidelizacion != null && "ACTIVO".equalsIgnoreCase(this.fidelizacion.getEstadoMembresia());
+    }
+
+    @JsonGetter("numeroClienteAmigo")
+    public String getNumeroClienteAmigo() {
+        return this.fidelizacion != null ? this.fidelizacion.getCodigoAfiliado() : null;
     }
 
     @JsonGetter("codigoClienteAmigo")
     public String getCodigoClienteAmigo() {
-        return this.numeroClienteAmigo;
+        return getNumeroClienteAmigo();
     }
 
-    @JsonSetter("codigoClienteAmigo")
-    public void setCodigoClienteAmigo(String codigoClienteAmigo) {
-        if (this.numeroClienteAmigo == null || this.numeroClienteAmigo.isEmpty()) {
-            this.numeroClienteAmigo = codigoClienteAmigo;
-        }
+    @JsonGetter("porcentajeDescuento")
+    public Double getPorcentajeDescuento() {
+        return (this.fidelizacion != null && this.fidelizacion.getPorcentajeDescuento() != null)
+                ? this.fidelizacion.getPorcentajeDescuento()
+                : 0.0;
+    }
+
+    @JsonGetter("puntosFidelidad")
+    public Integer getPuntosFidelidad() {
+        return (this.fidelizacion != null && this.fidelizacion.getPuntosAcumulados() != null)
+                ? this.fidelizacion.getPuntosAcumulados()
+                : 0;
     }
 
     @JsonGetter("nombre")

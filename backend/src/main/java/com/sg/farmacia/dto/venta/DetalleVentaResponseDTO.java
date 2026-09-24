@@ -15,7 +15,11 @@ public class DetalleVentaResponseDTO {
     private Long productoId;
     private String productoNombre;
     private String codigoBarras;
+    private Long loteId;
+    private String codigoLote;
     private Integer cantidad;
     private Double precioUnitario;
+    private Double descuento;
     private Double subtotalItem;
+    private Double subtotal;
 }

@@ -12,21 +12,34 @@ import java.util.Optional;
 @Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
-    Optional<Cliente> findByDniRuc(String dniRuc);
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.fidelizacion WHERE c.numeroDocumento = :numeroDocumento")
+    Optional<Cliente> findByNumeroDocumento(@Param("numeroDocumento") String numeroDocumento);
 
-    Optional<Cliente> findByNumeroClienteAmigo(String numeroClienteAmigo);
+    default Optional<Cliente> findByDniRuc(String dniRuc) {
+        return findByNumeroDocumento(dniRuc);
+    }
 
-    List<Cliente> findByNombreCompletoContainingIgnoreCase(String nombreCompleto);
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.fidelizacion f WHERE f.codigoAfiliado = :codigo")
+    Optional<Cliente> findByNumeroClienteAmigo(@Param("codigo") String codigo);
 
-    boolean existsByDniRuc(String dniRuc);
+    boolean existsByNumeroDocumento(String numeroDocumento);
 
-    boolean existsByDniRucAndIdNot(String dniRuc, Long id);
+    boolean existsByNumeroDocumentoAndIdNot(String numeroDocumento, Long id);
 
-    boolean existsByNumeroClienteAmigo(String numeroClienteAmigo);
+    default boolean existsByDniRuc(String dniRuc) {
+        return existsByNumeroDocumento(dniRuc);
+    }
 
-    @Query("SELECT c FROM Cliente c WHERE " +
-           "LOWER(c.dniRuc) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+    default boolean existsByDniRucAndIdNot(String dniRuc, Long id) {
+        return existsByNumeroDocumentoAndIdNot(dniRuc, id);
+    }
+
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.fidelizacion ORDER BY c.id DESC")
+    List<Cliente> findAllWithFidelizacion();
+
+    @Query("SELECT c FROM Cliente c LEFT JOIN FETCH c.fidelizacion f WHERE " +
+           "LOWER(c.numeroDocumento) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
            "LOWER(c.nombreCompleto) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
-           "(c.numeroClienteAmigo IS NOT NULL AND LOWER(c.numeroClienteAmigo) LIKE LOWER(CONCAT('%', :term, '%')))")
+           "(f IS NOT NULL AND LOWER(f.codigoAfiliado) LIKE LOWER(CONCAT('%', :term, '%')))")
     List<Cliente> buscarPorTermino(@Param("term") String term);
 }

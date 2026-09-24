@@ -39,11 +39,14 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         Usuario usuario = usuarioRepository.findByUsername(dto.getUsername())
+                .or(() -> usuarioRepository.findByEmail(dto.getUsername()))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + dto.getUsername()));
+
+        String rolNombre = (usuario.getRol() != null) ? usuario.getRol().getNombre() : "CAJERO";
 
         String token = jwtTokenProvider.generarToken(
                 usuario.getUsername(),
-                usuario.getRol().name(),
+                rolNombre,
                 usuario.getId(),
                 usuario.getNombre()
         );
@@ -51,6 +54,7 @@ public class AuthController {
         UsuarioDTO usuarioDTO = UsuarioDTO.builder()
                 .id(usuario.getId())
                 .username(usuario.getUsername())
+                .email(usuario.getEmail())
                 .nombre(usuario.getNombre())
                 .rol(usuario.getRol())
                 .activo(usuario.getActivo())
@@ -61,12 +65,12 @@ public class AuthController {
                 .token(token)
                 .type("Bearer")
                 .username(usuario.getUsername())
-                .rol(usuario.getRol())
+                .rol(rolNombre)
                 .nombre(usuario.getNombre())
                 .usuario(usuarioDTO)
                 .build();
 
-        log.info("Usuario '{}' autenticado exitosamente con rol: {}", usuario.getUsername(), usuario.getRol());
+        log.info("Usuario '{}' autenticado exitosamente con rol: {}", usuario.getUsername(), rolNombre);
 
         return ResponseEntity.ok(ApiResponse.success(responseDTO, "Inicio de sesión exitoso"));
     }

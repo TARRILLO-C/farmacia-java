@@ -15,9 +15,12 @@ import java.util.List;
 public class VentaResponseDTO {
 
     private Long id;
-    private LocalDateTime fechaVenta;
+    private String numeroVenta;
+    private LocalDateTime fecha;
+    private LocalDateTime fechaVenta; // Alias
     private Double subtotal;
-    private Double igv;
+    private Double impuesto;
+    private Double igv; // Alias
     private Double descuentoTotal;
     private Double total;
     private boolean requiereReceta;
@@ -25,9 +28,15 @@ public class VentaResponseDTO {
     private String clienteNombre;
     private String clienteDocumento;
     private boolean esClienteAmigo;
+    private Long usuarioId;
+    private String usuarioNombre;
     private Long reciboId;
-    private String codigoComprobante;
+    private String numeroRecibo;
+    private String codigoComprobante; // Alias
+    private Long metodoPagoId;
     private String metodoPago;
     private String tipoComprobante;
+    private String estado;
+    private String observaciones;
     private List<DetalleVentaResponseDTO> detalles;
 }

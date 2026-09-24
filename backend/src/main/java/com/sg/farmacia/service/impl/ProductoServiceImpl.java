@@ -5,16 +5,15 @@ import com.sg.farmacia.dto.producto.ProductoRequestDTO;
 import com.sg.farmacia.dto.producto.ProductoResponseDTO;
 import com.sg.farmacia.exception.BadRequestException;
 import com.sg.farmacia.exception.ResourceNotFoundException;
-import com.sg.farmacia.model.Categoria;
-import com.sg.farmacia.model.Producto;
-import com.sg.farmacia.repository.CategoriaRepository;
-import com.sg.farmacia.repository.ProductoRepository;
-import com.sg.farmacia.service.ProductoService;
+import com.sg.farmacia.model.*;
+import com.sg.farmacia.repository.*;
+import com.sg.farmacia.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +23,10 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final LaboratorioService laboratorioService;
+    private final PrincipioActivoService principioActivoService;
+    private final PresentacionService presentacionService;
+    private final LoteInventarioRepository loteRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,9 +41,9 @@ public class ProductoServiceImpl implements ProductoService {
         } else if (hasCategoria) {
             productos = productoRepository.findByCategoriaId(categoriaId);
         } else if (hasSearch) {
-            productos = productoRepository.buscarPorCodigoBarrasONombre(search.trim());
+            productos = productoRepository.buscarPorCodigoONombre(search.trim());
         } else {
-            productos = productoRepository.findAllWithCategoria();
+            productos = productoRepository.findAllWithRelations();
         }
 
         return productos.stream()
@@ -58,46 +61,71 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProductoResponseDTO obtenerPorCodigo(String codigoBarras) {
-        if (codigoBarras == null || codigoBarras.trim().isEmpty()) {
-            throw new BadRequestException("El código de barras proporcionado no es válido");
+    public ProductoResponseDTO obtenerPorCodigo(String codigo) {
+        if (codigo == null || codigo.trim().isEmpty()) {
+            throw new BadRequestException("El código proporcionado no es válido.");
         }
-        Producto producto = productoRepository.findByCodigoBarras(codigoBarras.trim())
-                .orElseThrow(() -> new ResourceNotFoundException("No se encontró ningún producto con el código de barras: " + codigoBarras.trim()));
+        Producto producto = productoRepository.findByCodigo(codigo.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró ningún producto con el código: " + codigo.trim()));
         return ProductoResponseDTO.fromEntity(producto);
     }
 
     @Override
     @Transactional
     public ProductoResponseDTO crear(ProductoRequestDTO dto) {
-        String codigoBarras = dto.obtenerCodigoBarras();
+        String codigo = dto.obtenerCodigo();
 
-        if (productoRepository.existsByCodigoBarras(codigoBarras)) {
-            throw new BadRequestException("Ya existe un producto registrado con el código de barras: " + codigoBarras);
+        if (productoRepository.existsByCodigo(codigo)) {
+            throw new BadRequestException("Ya existe un producto registrado con el código: " + codigo);
         }
 
         Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró la categoría con ID: " + dto.getCategoriaId()));
 
+        Laboratorio lab = laboratorioService.resolverEntidad(dto.getLaboratorioId(), dto.getLaboratorio());
+        PrincipioActivo pa = principioActivoService.resolverEntidad(dto.getPrincipioActivoId(), dto.getPrincipioActivo());
+        Presentacion pres = presentacionService.resolverEntidad(dto.getPresentacionId(), dto.getPresentacion());
+
         Producto producto = Producto.builder()
-                .codigoBarras(codigoBarras)
+                .codigo(codigo)
                 .nombre(dto.obtenerNombre())
                 .descripcion(dto.getDescripcion() != null ? dto.getDescripcion().trim() : null)
-                .principioActivo(dto.getPrincipioActivo() != null ? dto.getPrincipioActivo().trim() : null)
-                .presentacion(dto.getPresentacion() != null ? dto.getPresentacion().trim() : null)
-                .laboratorio(dto.getLaboratorio() != null ? dto.getLaboratorio().trim() : null)
-                .lote(dto.getLote() != null ? dto.getLote().trim() : null)
-                .precioCompra(dto.getPrecioCompra())
-                .precioVenta(dto.getPrecioVenta())
-                .stock(dto.getStock() != null ? dto.getStock() : 0)
-                .stockMinimo(dto.getStockMinimo() != null ? dto.getStockMinimo() : 10)
-                .fechaCaducidad(dto.getFechaCaducidad())
+                .precioBaseVenta(dto.getPrecioVenta())
                 .requiereReceta(dto.getRequiereReceta() != null ? dto.getRequiereReceta() : false)
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
                 .categoria(categoria)
+                .laboratorio(lab)
+                .principioActivo(pa)
+                .presentacion(pres)
+                .lotes(new ArrayList<>())
                 .build();
 
         Producto guardado = productoRepository.save(producto);
+
+        // Si se especificó stock o lote inicial, registrar LoteInventario
+        if (dto.getStock() != null && dto.getStock() > 0) {
+            String codLote = (dto.getLote() != null && !dto.getLote().isBlank())
+                    ? dto.getLote().trim()
+                    : "LOT-" + LocalDate.now().getYear() + "-01";
+
+            LocalDate venc = (dto.getFechaCaducidad() != null)
+                    ? dto.getFechaCaducidad()
+                    : LocalDate.now().plusMonths(12);
+
+            LoteInventario lote = LoteInventario.builder()
+                    .producto(guardado)
+                    .codigoLote(codLote)
+                    .fechaVencimiento(venc)
+                    .stockActual(dto.getStock())
+                    .stockMinimo(dto.getStockMinimo() != null ? dto.getStockMinimo() : 5)
+                    .precioCompra(dto.getPrecioCompra() != null ? dto.getPrecioCompra() : 0.00)
+                    .activo(true)
+                    .build();
+
+            loteRepository.save(lote);
+            guardado.getLotes().add(lote);
+        }
+
         return ProductoResponseDTO.fromEntity(guardado);
     }
 
@@ -107,30 +135,22 @@ public class ProductoServiceImpl implements ProductoService {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró el producto con ID: " + id));
 
-        String nuevoCodigo = dto.obtenerCodigoBarras();
-        if (productoRepository.existsByCodigoBarrasAndIdNot(nuevoCodigo, id)) {
-            throw new BadRequestException("Ya existe otro producto registrado con el código de barras: " + nuevoCodigo);
+        String nuevoCodigo = dto.obtenerCodigo();
+        if (productoRepository.existsByCodigoAndIdNot(nuevoCodigo, id)) {
+            throw new BadRequestException("Ya existe otro producto registrado con el código: " + nuevoCodigo);
         }
 
         Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró la categoría con ID: " + dto.getCategoriaId()));
 
-        producto.setCodigoBarras(nuevoCodigo);
+        Laboratorio lab = laboratorioService.resolverEntidad(dto.getLaboratorioId(), dto.getLaboratorio());
+        PrincipioActivo pa = principioActivoService.resolverEntidad(dto.getPrincipioActivoId(), dto.getPrincipioActivo());
+        Presentacion pres = presentacionService.resolverEntidad(dto.getPresentacionId(), dto.getPresentacion());
+
+        producto.setCodigo(nuevoCodigo);
         producto.setNombre(dto.obtenerNombre());
         producto.setDescripcion(dto.getDescripcion() != null ? dto.getDescripcion().trim() : null);
-        producto.setPrincipioActivo(dto.getPrincipioActivo() != null ? dto.getPrincipioActivo().trim() : null);
-        producto.setPresentacion(dto.getPresentacion() != null ? dto.getPresentacion().trim() : null);
-        producto.setLaboratorio(dto.getLaboratorio() != null ? dto.getLaboratorio().trim() : null);
-        producto.setLote(dto.getLote() != null ? dto.getLote().trim() : null);
-        producto.setPrecioCompra(dto.getPrecioCompra());
-        producto.setPrecioVenta(dto.getPrecioVenta());
-        if (dto.getStock() != null) {
-            producto.setStock(dto.getStock());
-        }
-        if (dto.getStockMinimo() != null) {
-            producto.setStockMinimo(dto.getStockMinimo());
-        }
-        producto.setFechaCaducidad(dto.getFechaCaducidad());
+        producto.setPrecioBaseVenta(dto.getPrecioVenta());
         if (dto.getRequiereReceta() != null) {
             producto.setRequiereReceta(dto.getRequiereReceta());
         }
@@ -138,6 +158,9 @@ public class ProductoServiceImpl implements ProductoService {
             producto.setActivo(dto.getActivo());
         }
         producto.setCategoria(categoria);
+        if (lab != null) producto.setLaboratorio(lab);
+        if (pa != null) producto.setPrincipioActivo(pa);
+        if (pres != null) producto.setPresentacion(pres);
 
         Producto actualizado = productoRepository.save(producto);
         return ProductoResponseDTO.fromEntity(actualizado);
@@ -148,7 +171,8 @@ public class ProductoServiceImpl implements ProductoService {
     public void eliminar(Long id) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró el producto con ID: " + id));
-        productoRepository.delete(producto);
+        producto.setActivo(false);
+        productoRepository.save(producto);
     }
 
     @Override
@@ -157,7 +181,7 @@ public class ProductoServiceImpl implements ProductoService {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró el producto con ID: " + id));
 
-        int stockActual = producto.getStock() != null ? producto.getStock() : 0;
+        int stockActual = producto.getStock();
         int nuevoStock;
         String tipoMovimiento = dto.getTipo() != null ? dto.getTipo().trim().toUpperCase() : "";
 
@@ -178,7 +202,6 @@ public class ProductoServiceImpl implements ProductoService {
                 nuevoStock = dto.getCantidad();
                 break;
             default:
-                // Si no especifica tipo, interpretar directamente el signo de cantidad
                 nuevoStock = stockActual + dto.getCantidad();
                 break;
         }
@@ -190,17 +213,35 @@ public class ProductoServiceImpl implements ProductoService {
             ));
         }
 
-        producto.setStock(nuevoStock);
-        Producto guardado = productoRepository.save(producto);
-        return ProductoResponseDTO.fromEntity(guardado);
+        // Buscar lote activo o crear lote de ajuste
+        List<LoteInventario> lotes = loteRepository.findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(id);
+        if (!lotes.isEmpty()) {
+            LoteInventario primerLote = lotes.get(0);
+            int diff = nuevoStock - stockActual;
+            primerLote.setStockActual(Math.max(0, primerLote.getStockActual() + diff));
+            loteRepository.save(primerLote);
+        } else {
+            LoteInventario nuevoLote = LoteInventario.builder()
+                    .producto(producto)
+                    .codigoLote("LOT-AJUSTE-" + LocalDate.now().getYear())
+                    .fechaVencimiento(LocalDate.now().plusMonths(12))
+                    .stockActual(nuevoStock)
+                    .stockMinimo(5)
+                    .precioCompra(0.00)
+                    .activo(true)
+                    .build();
+            loteRepository.save(nuevoLote);
+        }
+
+        return ProductoResponseDTO.fromEntity(productoRepository.findById(id).orElse(producto));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductoResponseDTO> listarStockBajo(Integer limite) {
         int lim = (limite != null && limite >= 0) ? limite : 10;
-        return productoRepository.findByStockLessThanEqual(lim)
-                .stream()
+        return productoRepository.findAllWithRelations().stream()
+                .filter(p -> p.getStock() <= lim)
                 .map(ProductoResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -212,8 +253,8 @@ public class ProductoServiceImpl implements ProductoService {
         LocalDate hoy = LocalDate.now();
         LocalDate fechaLimite = hoy.plusDays(diasLimite);
 
-        return productoRepository.findByFechaCaducidadBetween(hoy, fechaLimite)
-                .stream()
+        return productoRepository.findAllWithRelations().stream()
+                .filter(p -> p.getFechaCaducidad() != null && !p.getFechaCaducidad().isBefore(hoy) && !p.getFechaCaducidad().isAfter(fechaLimite))
                 .map(ProductoResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }

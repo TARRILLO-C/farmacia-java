@@ -19,7 +19,7 @@ public class AuthResponseDTO {
 
     private String username;
 
-    private Role rol;
+    private String rol;
 
     private String nombre;
 

@@ -1,6 +1,5 @@
 package com.sg.farmacia.dto.cliente;
 
-import com.sg.farmacia.model.TipoCliente;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,10 +14,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ClienteRequestDTO {
 
-    @NotBlank(message = "El documento de identidad (DNI/RUC) es obligatorio")
+    @Builder.Default
+    private String tipoDocumento = "DNI";
+
+    @NotBlank(message = "El documento de identidad es obligatorio")
     @Size(min = 8, max = 20, message = "El documento debe tener entre 8 y 20 caracteres")
-    @JsonAlias({"documentoIdentidad", "dni", "ruc"})
-    private String dniRuc;
+    @JsonAlias({"documentoIdentidad", "dni", "ruc", "dniRuc", "numeroDocumento"})
+    private String numeroDocumento;
 
     @JsonAlias({"nombre"})
     private String nombre;
@@ -38,18 +40,23 @@ public class ClienteRequestDTO {
     private String email;
 
     @Builder.Default
-    private TipoCliente tipoCliente = TipoCliente.NUEVO;
-
-    @Builder.Default
     private Boolean esClienteAmigo = false;
 
-    @JsonAlias({"codigoClienteAmigo"})
+    @JsonAlias({"codigoClienteAmigo", "codigoAfiliado"})
     private String numeroClienteAmigo;
 
     private Double porcentajeDescuento;
 
     @Builder.Default
     private Boolean activo = true;
+
+    public String getDniRuc() {
+        return this.numeroDocumento;
+    }
+
+    public void setDniRuc(String dniRuc) {
+        this.numeroDocumento = dniRuc;
+    }
 
     public String obtenerNombreCompleto() {
         if (this.nombreCompleto != null && !this.nombreCompleto.trim().isEmpty()) {

@@ -18,14 +18,21 @@ public class VentaRequestDTO {
 
     private Long clienteId;
 
+    private Long usuarioId;
+
     private String numeroClienteAmigo;
 
     @Builder.Default
     private Boolean requiereReceta = false;
 
+    private Long metodoPagoId;
+
     private String metodoPago;
 
-    private String tipoComprobante;
+    @Builder.Default
+    private String tipoComprobante = "BOLETA";
+
+    private String observaciones;
 
     public boolean isRequiereReceta() {
         return Boolean.TRUE.equals(this.requiereReceta);

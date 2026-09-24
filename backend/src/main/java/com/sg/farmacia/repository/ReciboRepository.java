@@ -11,7 +11,11 @@ import java.util.Optional;
 @Repository
 public interface ReciboRepository extends JpaRepository<Recibo, Long> {
 
-    Optional<Recibo> findByCodigoComprobante(String codigoComprobante);
+    Optional<Recibo> findByNumeroRecibo(String numeroRecibo);
+
+    default Optional<Recibo> findByCodigoComprobante(String codigoComprobante) {
+        return findByNumeroRecibo(codigoComprobante);
+    }
 
     Optional<Recibo> findByVentaId(Long ventaId);
 
@@ -22,7 +26,8 @@ public interface ReciboRepository extends JpaRepository<Recibo, Long> {
            "JOIN FETCH r.venta v " +
            "LEFT JOIN FETCH v.cliente " +
            "LEFT JOIN FETCH v.detalles d " +
-           "LEFT JOIN FETCH d.producto " +
+           "LEFT JOIN FETCH d.lote l " +
+           "LEFT JOIN FETCH l.producto " +
            "WHERE r.id = :id")
     Optional<Recibo> findByIdConDetalles(@Param("id") Long id);
 
@@ -30,7 +35,8 @@ public interface ReciboRepository extends JpaRepository<Recibo, Long> {
            "JOIN FETCH r.venta v " +
            "LEFT JOIN FETCH v.cliente " +
            "LEFT JOIN FETCH v.detalles d " +
-           "LEFT JOIN FETCH d.producto " +
-           "WHERE r.codigoComprobante = :codigo")
+           "LEFT JOIN FETCH d.lote l " +
+           "LEFT JOIN FETCH l.producto " +
+           "WHERE r.numeroRecibo = :codigo")
     Optional<Recibo> findByCodigoConDetalles(@Param("codigo") String codigo);
 }

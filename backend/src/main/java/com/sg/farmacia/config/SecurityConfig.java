@@ -52,26 +52,43 @@ public class SecurityConfig {
                         // 2. Endpoints Públicos de Autenticación
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
-                        // 2. Endpoints de Ventas, Recibos y Clientes (ADMIN y CAJERO)
-                        .requestMatchers("/api/v1/ventas/**").hasAnyRole("ADMIN", "CAJERO")
-                        .requestMatchers("/api/v1/recibos/**").hasAnyRole("ADMIN", "CAJERO")
-                        .requestMatchers("/api/v1/clientes/**").hasAnyRole("ADMIN", "CAJERO")
+                        // 3. Ventas, Recibos y Clientes (ADMIN, FARMACEUTICO y CAJERO)
+                        .requestMatchers("/api/v1/ventas/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers("/api/v1/recibos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers("/api/v1/clientes/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers("/api/v1/fidelizacion/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
 
-                        // 3. Catálogo y Familias: Lectura permitida para CAJERO y ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").hasAnyRole("ADMIN", "CAJERO")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**").hasAnyRole("ADMIN", "CAJERO")
+                        // 4. Catálogos y Lotes: Lectura permitida para CAJERO, FARMACEUTICO y ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/laboratorios/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/principios-activos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/presentaciones/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/metodos-pago/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/lotes/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
 
-                        // 4. Gestión de Catálogo: Creación, Modificación y Baja exclusiva de ADMIN
-                        .requestMatchers(HttpMethod.POST, "/api/v1/productos/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/productos/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/productos/**").hasRole("ADMIN")
+                        // 5. Abastecimiento (Compras), Proveedores y Gestión de Lotes (ADMIN y FARMACEUTICO)
+                        .requestMatchers("/api/v1/compras/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/proveedores/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/lotes/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+
+                        // 6. Modificación de Catálogos (ADMIN y FARMACEUTICO)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/productos/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/productos/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/productos/**").hasAnyRole("ADMIN", "FARMACEUTICO")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/productos/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/categorias/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/categorias/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/laboratorios/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/principios-activos/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/presentaciones/**").hasAnyRole("ADMIN", "FARMACEUTICO")
+                        .requestMatchers("/api/v1/metodos-pago/**").hasRole("ADMIN")
 
-                        // 5. Gestión de Usuarios del Sistema (Exclusivo ADMIN)
+                        // 7. Gestión de Personal y Seguridad (Exclusivo ADMIN)
+                        .requestMatchers("/api/v1/empleados/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
 
-                        // 6. Cualquier otra solicitud requiere autenticación
+                        // 8. Cualquier otra solicitud requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

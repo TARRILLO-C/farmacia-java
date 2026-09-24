@@ -13,60 +13,75 @@ import java.util.Optional;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
-    Optional<Producto> findByCodigoBarras(String codigoBarras);
+    @Query("SELECT p FROM Producto p " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.laboratorio " +
+           "LEFT JOIN FETCH p.principioActivo " +
+           "LEFT JOIN FETCH p.presentacion " +
+           "LEFT JOIN FETCH p.lotes " +
+           "WHERE p.codigo = :codigo")
+    Optional<Producto> findByCodigo(@Param("codigo") String codigo);
 
-    boolean existsByCodigoBarras(String codigoBarras);
+    default Optional<Producto> findByCodigoBarras(String codigoBarras) {
+        return findByCodigo(codigoBarras);
+    }
 
-    boolean existsByCodigoBarrasAndIdNot(String codigoBarras, Long id);
+    boolean existsByCodigo(String codigo);
 
-    /**
-     * Buscar productos por código de barras o nombre con coincidencia parcial.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE " +
-           "LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+    default boolean existsByCodigoBarras(String codigoBarras) {
+        return existsByCodigo(codigoBarras);
+    }
+
+    boolean existsByCodigoAndIdNot(String codigo, Long id);
+
+    default boolean existsByCodigoBarrasAndIdNot(String codigoBarras, Long id) {
+        return existsByCodigoAndIdNot(codigoBarras, id);
+    }
+
+    @Query("SELECT DISTINCT p FROM Producto p " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.laboratorio " +
+           "LEFT JOIN FETCH p.principioActivo " +
+           "LEFT JOIN FETCH p.presentacion " +
+           "LEFT JOIN FETCH p.lotes " +
+           "WHERE LOWER(p.codigo) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
            "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :term, '%'))")
-    List<Producto> buscarPorCodigoBarrasONombre(@Param("term") String term);
+    List<Producto> buscarPorCodigoONombre(@Param("term") String term);
 
-    /**
-     * Filtrar productos por el ID de su categoría.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE p.categoria.id = :categoriaId")
+    default List<Producto> buscarPorCodigoBarrasONombre(String term) {
+        return buscarPorCodigoONombre(term);
+    }
+
+    @Query("SELECT DISTINCT p FROM Producto p " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.laboratorio " +
+           "LEFT JOIN FETCH p.principioActivo " +
+           "LEFT JOIN FETCH p.presentacion " +
+           "LEFT JOIN FETCH p.lotes " +
+           "WHERE p.categoria.id = :categoriaId")
     List<Producto> findByCategoriaId(@Param("categoriaId") Long categoriaId);
 
-    /**
-     * Filtrar productos por categoría y coincidencia en código de barras o nombre.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE " +
-           "p.categoria.id = :categoriaId AND (" +
-           "LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+    @Query("SELECT DISTINCT p FROM Producto p " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.laboratorio " +
+           "LEFT JOIN FETCH p.principioActivo " +
+           "LEFT JOIN FETCH p.presentacion " +
+           "LEFT JOIN FETCH p.lotes " +
+           "WHERE p.categoria.id = :categoriaId AND (" +
+           "LOWER(p.codigo) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
            "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :term, '%')))")
     List<Producto> buscarPorCategoriaYTermino(@Param("categoriaId") Long categoriaId, @Param("term") String term);
 
-    /**
-     * Consultar productos con stock menor o igual a un límite especificado.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE p.stock <= :limite ORDER BY p.stock ASC")
-    List<Producto> findByStockLessThanEqual(@Param("limite") Integer limite);
+    @Query("SELECT DISTINCT p FROM Producto p " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.laboratorio " +
+           "LEFT JOIN FETCH p.principioActivo " +
+           "LEFT JOIN FETCH p.presentacion " +
+           "LEFT JOIN FETCH p.lotes " +
+           "ORDER BY p.id DESC")
+    List<Producto> findAllWithRelations();
 
-    /**
-     * Consultar productos con fecha de caducidad menor o igual a una fecha límite (o en un rango).
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE " +
-           "p.fechaCaducidad IS NOT NULL AND p.fechaCaducidad <= :fechaLimite " +
-           "ORDER BY p.fechaCaducidad ASC")
-    List<Producto> findByFechaCaducidadLessThanEqual(@Param("fechaLimite") LocalDate fechaLimite);
-
-    /**
-     * Consultar productos que vencen entre una fecha de inicio y una fecha de fin.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria WHERE " +
-           "p.fechaCaducidad IS NOT NULL AND p.fechaCaducidad BETWEEN :inicio AND :fin " +
-           "ORDER BY p.fechaCaducidad ASC")
-    List<Producto> findByFechaCaducidadBetween(@Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
-
-    /**
-     * Cargar todos los productos inicializando de forma eficiente su categoría asociada.
-     */
-    @Query("SELECT p FROM Producto p LEFT JOIN FETCH p.categoria ORDER BY p.id DESC")
-    List<Producto> findAllWithCategoria();
+    default List<Producto> findAllWithCategoria() {
+        return findAllWithRelations();
+    }
 }

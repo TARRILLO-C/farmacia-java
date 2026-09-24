@@ -6,18 +6,14 @@ import com.sg.farmacia.dto.venta.VentaRequestDTO;
 import com.sg.farmacia.dto.venta.VentaResponseDTO;
 import com.sg.farmacia.exception.BadRequestException;
 import com.sg.farmacia.exception.ResourceNotFoundException;
-import com.sg.farmacia.model.Cliente;
-import com.sg.farmacia.model.DetalleVenta;
-import com.sg.farmacia.model.Producto;
-import com.sg.farmacia.model.Recibo;
-import com.sg.farmacia.model.Venta;
-import com.sg.farmacia.repository.ClienteRepository;
-import com.sg.farmacia.repository.ProductoRepository;
-import com.sg.farmacia.repository.ReciboRepository;
-import com.sg.farmacia.repository.VentaRepository;
+import com.sg.farmacia.model.*;
+import com.sg.farmacia.repository.*;
+import com.sg.farmacia.service.FidelizacionCrmService;
 import com.sg.farmacia.service.VentaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +35,10 @@ public class VentaServiceImpl implements VentaService {
     private final ProductoRepository productoRepository;
     private final ClienteRepository clienteRepository;
     private final ReciboRepository reciboRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final MetodoPagoRepository metodoPagoRepository;
+    private final LoteInventarioRepository loteRepository;
+    private final FidelizacionCrmService fidelizacionService;
 
     @Override
     @Transactional
@@ -50,11 +50,14 @@ public class VentaServiceImpl implements VentaService {
             throw new BadRequestException("La venta debe contener al menos un producto en la lista de items.");
         }
 
-        // 2. Resolver Cliente y validaciones de Receta Médica / Cliente Amigo
+        // 2. Resolver Cliente, Usuario y Método de Pago
         Cliente cliente = resolverCliente(dto);
+        Usuario usuario = resolverUsuario(dto.getUsuarioId());
+        MetodoPago metodoPago = resolverMetodoPago(dto.getMetodoPagoId(), dto.getMetodoPago());
+
         boolean requiereRecetaFinal = dto.isRequiereReceta();
 
-        // 3. Procesar items, validar stock y calcular montos
+        // 3. Procesar items con estrategia FEFO para descuento de lotes
         double subtotalAcumulado = 0.0;
         List<DetalleVenta> detalles = new ArrayList<>();
 
@@ -73,117 +76,154 @@ public class VentaServiceImpl implements VentaService {
                 throw new BadRequestException("El producto '" + producto.getNombre() + "' no se encuentra activo para la venta.");
             }
 
-            // Validar stock disponible
-            int stockActual = producto.getStock() != null ? producto.getStock() : 0;
-            if (stockActual < item.getCantidad()) {
-                throw new BadRequestException("Stock insuficiente para el producto: " + producto.getNombre() +
-                        ". Stock disponible: " + stockActual + ", solicitado: " + item.getCantidad());
-            }
-
-            // Si el producto requiere receta médica de forma individual
             if (Boolean.TRUE.equals(producto.getRequiereReceta())) {
                 requiereRecetaFinal = true;
             }
 
-            // Calcular montos del item
-            double precioUnitario = producto.getPrecioVenta();
-            double subtotalItem = redondear(precioUnitario * item.getCantidad());
-            subtotalAcumulado += subtotalItem;
+            // Seleccionar lote(s) con stock disponible
+            int cantidadRestante = item.getCantidad();
+            List<LoteInventario> lotesDisponibles;
 
-            // Descontar automáticamente el stock del producto
-            producto.setStock(stockActual - item.getCantidad());
-            productoRepository.save(producto);
+            if (item.getLoteId() != null) {
+                LoteInventario loteEspecifico = loteRepository.findById(item.getLoteId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Lote no encontrado con ID: " + item.getLoteId()));
+                lotesDisponibles = List.of(loteEspecifico);
+            } else {
+                // Estrategia FEFO: Primer lote que vence, primero en salir
+                lotesDisponibles = loteRepository.findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(producto.getId());
+            }
 
-            // Crear detalle
-            DetalleVenta detalle = DetalleVenta.builder()
-                    .producto(producto)
-                    .cantidad(item.getCantidad())
-                    .precioUnitario(precioUnitario)
-                    .subtotalItem(subtotalItem)
-                    .build();
+            int stockTotalDisponible = lotesDisponibles.stream()
+                    .mapToInt(l -> l.getStockActual() != null ? l.getStockActual() : 0)
+                    .sum();
 
-            detalles.add(detalle);
+            if (stockTotalDisponible < cantidadRestante) {
+                throw new BadRequestException("Stock insuficiente para el producto: " + producto.getNombre() +
+                        ". Stock disponible: " + stockTotalDisponible + ", solicitado: " + cantidadRestante);
+            }
+
+            double precioUnitario = producto.getPrecioBaseVenta();
+
+            for (LoteInventario lote : lotesDisponibles) {
+                if (cantidadRestante <= 0) break;
+                int disponibleEnLote = lote.getStockActual() != null ? lote.getStockActual() : 0;
+                if (disponibleEnLote <= 0) continue;
+
+                int aDescontar = Math.min(disponibleEnLote, cantidadRestante);
+                lote.setStockActual(disponibleEnLote - aDescontar);
+                loteRepository.save(lote);
+
+                double subtotalItem = redondear(precioUnitario * aDescontar);
+                subtotalAcumulado += subtotalItem;
+
+                DetalleVenta det = DetalleVenta.builder()
+                        .lote(lote)
+                        .cantidad(aDescontar)
+                        .precioUnitario(precioUnitario)
+                        .descuento(0.00)
+                        .subtotal(subtotalItem)
+                        .build();
+
+                detalles.add(det);
+                cantidadRestante -= aDescontar;
+            }
         }
 
-        // Si la venta o alguno de sus medicamentos exige receta, validar cliente obligatorio
+        // Si la venta incluye medicamentos con receta, exigir cliente
         if (requiereRecetaFinal && cliente == null) {
-            throw new BadRequestException("La venta incluye productos bajo receta médica; es obligatorio asociar un cliente válido (clienteId).");
+            throw new BadRequestException("La venta incluye productos bajo receta médica; es obligatorio registrar o asociar un cliente válido.");
         }
 
         // 4. Calcular Descuento por Cliente Amigo (si aplica)
         double descuentoTotal = 0.0;
-        boolean esAmigo = cliente != null && (cliente.isEsClienteAmigo() ||
-                (cliente.getNumeroClienteAmigo() != null && !cliente.getNumeroClienteAmigo().isBlank()));
+        boolean esAmigo = cliente != null && cliente.isEsClienteAmigo();
 
         if (esAmigo) {
             Double porcentaje = cliente.getPorcentajeDescuento();
             if (porcentaje == null || porcentaje <= 0.0) {
-                porcentaje = 5.0; // Descuento estándar del 5% por fidelización
+                porcentaje = 5.0; // Descuento estándar del 5%
             }
             double tasa = (porcentaje > 1.0) ? (porcentaje / 100.0) : porcentaje;
             descuentoTotal = redondear(subtotalAcumulado * tasa);
         }
 
-        // 5. Calcular IGV (18%) y Total
+        // 5. Calcular Impuesto (18% IGV en Perú) y Total
         double subtotal = redondear(subtotalAcumulado);
         double montoBase = redondear(Math.max(0.0, subtotal - descuentoTotal));
-        double igv = redondear(montoBase * 0.18);
-        double total = redondear(montoBase + igv);
+        double impuesto = redondear(montoBase * 0.18);
+        double total = redondear(montoBase + impuesto);
 
-        // 6. Si es Cliente Amigo, acreditar puntos de fidelidad
-        if (esAmigo) {
-            int puntosGanados = (int) (total / 10.0);
-            if (puntosGanados > 0) {
-                int puntosPrevios = cliente.getPuntosFidelidad() != null ? cliente.getPuntosFidelidad() : 0;
-                cliente.setPuntosFidelidad(puntosPrevios + puntosGanados);
-                clienteRepository.save(cliente);
-            }
-        }
+        // 6. Generar número correlativo de venta
+        long nextVentaId = (ventaRepository.findMaxId() != null ? ventaRepository.findMaxId() : 0L) + 1;
+        int anio = LocalDate.now().getYear();
+        String numeroVenta = String.format("VTA-%d-%06d", anio, nextVentaId);
 
-        String metodoPago = (dto.getMetodoPago() != null && !dto.getMetodoPago().isBlank())
-                ? dto.getMetodoPago().trim().toUpperCase()
-                : "EFECTIVO";
-        String tipoComprobante = (dto.getTipoComprobante() != null && !dto.getTipoComprobante().isBlank())
-                ? dto.getTipoComprobante().trim().toUpperCase()
-                : "BOLETA";
-
-        // 7. Crear y persistir la Venta junto a sus Detalles
+        // 7. Guardar Venta
         Venta venta = Venta.builder()
-                .fechaVenta(LocalDateTime.now())
+                .numeroVenta(numeroVenta)
+                .fecha(LocalDateTime.now())
                 .subtotal(subtotal)
-                .igv(igv)
+                .impuesto(impuesto)
                 .descuentoTotal(descuentoTotal)
                 .total(total)
-                .requiereReceta(requiereRecetaFinal)
-                .metodoPago(metodoPago)
-                .tipoComprobante(tipoComprobante)
                 .cliente(cliente)
+                .usuario(usuario)
+                .metodoPago(metodoPago)
+                .estado("COMPLETADA")
+                .observaciones(dto.getObservaciones())
                 .detalles(new ArrayList<>())
                 .build();
 
-        for (DetalleVenta detalle : detalles) {
-            venta.addDetalle(detalle);
+        for (DetalleVenta det : detalles) {
+            venta.addDetalle(det);
         }
 
         Venta ventaGuardada = ventaRepository.save(venta);
 
-        // 8. Generar automáticamente el registro de Recibo
-        long nextId = (reciboRepository.findMaxId() != null ? reciboRepository.findMaxId() : 0L) + 1;
-        int anio = (ventaGuardada.getFechaVenta() != null) ? ventaGuardada.getFechaVenta().getYear() : LocalDate.now().getYear();
-        String codigoComprobante = String.format("REC-%d-%05d", anio, nextId);
+        // 8. Generar Recibo Fiscal
+        long nextReciboId = (reciboRepository.findMaxId() != null ? reciboRepository.findMaxId() : 0L) + 1;
+        String tipoComprobante = (dto.getTipoComprobante() != null && !dto.getTipoComprobante().isBlank())
+                ? dto.getTipoComprobante().trim().toUpperCase()
+                : "BOLETA";
+
+        String serie = tipoComprobante.contains("FACTURA") ? "F001" : "B001";
+        String correlativo = String.format("%08d", nextReciboId);
+        String numeroRecibo = serie + "-" + correlativo;
+
+        String clienteNom = cliente != null ? cliente.getNombreCompleto() : "PÚBLICO GENERAL";
+        String clienteDoc = cliente != null ? cliente.getNumeroDocumento() : "00000000";
+        String clienteDir = cliente != null ? cliente.getDireccion() : "VENTA EN MOSTRADOR";
 
         Recibo recibo = Recibo.builder()
-                .codigoComprobante(codigoComprobante)
-                .fechaEmision(ventaGuardada.getFechaVenta())
+                .numeroRecibo(numeroRecibo)
+                .serie(serie)
+                .correlativo(correlativo)
+                .tipoComprobante(tipoComprobante)
+                .fechaEmision(ventaGuardada.getFecha())
+                .montoSubtotal(subtotal)
+                .montoImpuesto(impuesto)
+                .montoDescuento(descuentoTotal)
+                .montoTotal(total)
+                .metodoPago(metodoPago.getNombre())
                 .venta(ventaGuardada)
-                .totalPagado(ventaGuardada.getTotal())
+                .clienteNombre(clienteNom)
+                .clienteDocumento(clienteDoc)
+                .clienteDireccion(clienteDir)
                 .build();
 
         Recibo reciboGuardado = reciboRepository.save(recibo);
         ventaGuardada.setRecibo(reciboGuardado);
 
-        log.info("Venta procesada exitosamente con ID: {}, Recibo: {}, Total: S/ {}",
-                ventaGuardada.getId(), codigoComprobante, ventaGuardada.getTotal());
+        // 9. Si es Cliente Amigo, acumular puntos
+        if (esAmigo) {
+            int puntosGanados = (int) (total / 10.0);
+            if (puntosGanados > 0) {
+                fidelizacionService.acumularPuntos(cliente.getId(), puntosGanados);
+            }
+        }
+
+        log.info("Venta procesada con éxito: Venta {}, Recibo {}, Total S/ {}",
+                numeroVenta, numeroRecibo, total);
 
         return mapearAVentaResponse(ventaGuardada, esAmigo);
     }
@@ -203,8 +243,6 @@ public class VentaServiceImpl implements VentaService {
         LocalDateTime hasta = (fechaFin != null) ? fechaFin.atTime(LocalTime.MAX) : null;
         String dni = (dniCliente != null && !dniCliente.trim().isEmpty()) ? dniCliente.trim() : null;
 
-        log.info("Consultando historial de ventas. Desde: {}, Hasta: {}, DNI: {}", desde, hasta, dni);
-
         return ventaRepository.buscarHistorial(desde, hasta, dni).stream()
                 .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
                 .collect(Collectors.toList());
@@ -213,7 +251,6 @@ public class VentaServiceImpl implements VentaService {
     @Override
     @Transactional(readOnly = true)
     public List<VentaResponseDTO> listarPorClienteId(Long clienteId) {
-        log.info("Consultando historial de compras para cliente ID: {}", clienteId);
         return ventaRepository.findByClienteId(clienteId).stream()
                 .map(v -> mapearAVentaResponse(v, v.getCliente() != null && v.getCliente().isEsClienteAmigo()))
                 .collect(Collectors.toList());
@@ -233,35 +270,51 @@ public class VentaServiceImpl implements VentaService {
     // =========================================================================
 
     private Cliente resolverCliente(VentaRequestDTO dto) {
-        Cliente cliente = null;
-
-        // 1. Por clienteId
         if (dto.getClienteId() != null) {
-            cliente = clienteRepository.findById(dto.getClienteId())
+            Cliente c = clienteRepository.findById(dto.getClienteId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + dto.getClienteId()));
-
-            if (!Boolean.TRUE.equals(cliente.getActivo())) {
+            if (!Boolean.TRUE.equals(c.getActivo())) {
                 throw new BadRequestException("El cliente con ID " + dto.getClienteId() + " no está activo.");
             }
+            return c;
         }
 
-        // 2. Por número de Cliente Amigo
         if (dto.getNumeroClienteAmigo() != null && !dto.getNumeroClienteAmigo().trim().isEmpty()) {
-            Cliente clientePorNumero = clienteRepository.findByNumeroClienteAmigo(dto.getNumeroClienteAmigo().trim())
-                    .orElseThrow(() -> new ResourceNotFoundException("No se encontró cliente con el número de Cliente Amigo: " + dto.getNumeroClienteAmigo()));
-
-            if (!Boolean.TRUE.equals(clientePorNumero.getActivo())) {
-                throw new BadRequestException("El Cliente Amigo '" + dto.getNumeroClienteAmigo() + "' no se encuentra activo.");
-            }
-
-            if (cliente != null && !cliente.getId().equals(clientePorNumero.getId())) {
-                throw new BadRequestException("El clienteId proporcionado (" + cliente.getId() +
-                        ") no coincide con el cliente asociado al número Cliente Amigo (" + clientePorNumero.getId() + ").");
-            }
-            cliente = clientePorNumero;
+            return clienteRepository.findByNumeroClienteAmigo(dto.getNumeroClienteAmigo().trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("No se encontró cliente con código de afiliado: " + dto.getNumeroClienteAmigo()));
         }
 
-        return cliente;
+        return null;
+    }
+
+    private Usuario resolverUsuario(Long usuarioId) {
+        if (usuarioId != null) {
+            return usuarioRepository.findById(usuarioId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + usuarioId));
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equalsIgnoreCase("anonymousUser")) {
+            return usuarioRepository.findByUsername(auth.getName())
+                    .orElseGet(() -> usuarioRepository.findAll().stream().findFirst().orElseThrow(() ->
+                            new BadRequestException("No hay usuarios registrados en el sistema.")));
+        }
+
+        return usuarioRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new BadRequestException("No hay usuarios registrados en el sistema para asociar la venta."));
+    }
+
+    private MetodoPago resolverMetodoPago(Long id, String nombre) {
+        if (id != null) {
+            return metodoPagoRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Método de pago no encontrado con ID: " + id));
+        }
+        if (nombre != null && !nombre.isBlank()) {
+            return metodoPagoRepository.findByNombre(nombre.trim())
+                    .orElseGet(() -> metodoPagoRepository.save(MetodoPago.builder().nombre(nombre.trim()).activo(true).build()));
+        }
+        return metodoPagoRepository.findByNombre("Efectivo")
+                .orElseGet(() -> metodoPagoRepository.save(MetodoPago.builder().nombre("Efectivo").activo(true).build()));
     }
 
     private VentaResponseDTO mapearAVentaResponse(Venta venta, boolean esAmigo) {
@@ -269,32 +322,48 @@ public class VentaServiceImpl implements VentaService {
                 ? venta.getDetalles().stream()
                 .map(d -> DetalleVentaResponseDTO.builder()
                         .id(d.getId())
-                        .productoId(d.getProducto() != null ? d.getProducto().getId() : null)
-                        .productoNombre(d.getProducto() != null ? d.getProducto().getNombre() : "")
-                        .codigoBarras(d.getProducto() != null ? d.getProducto().getCodigoBarras() : "")
+                        .productoId(d.getLote() != null && d.getLote().getProducto() != null ? d.getLote().getProducto().getId() : null)
+                        .productoNombre(d.getLote() != null && d.getLote().getProducto() != null ? d.getLote().getProducto().getNombre() : "")
+                        .codigoBarras(d.getLote() != null && d.getLote().getProducto() != null ? d.getLote().getProducto().getCodigo() : "")
+                        .loteId(d.getLote() != null ? d.getLote().getId() : null)
+                        .codigoLote(d.getLote() != null ? d.getLote().getCodigoLote() : "")
                         .cantidad(d.getCantidad())
                         .precioUnitario(d.getPrecioUnitario())
-                        .subtotalItem(d.getSubtotalItem())
+                        .descuento(d.getDescuento())
+                        .subtotalItem(d.getSubtotal())
+                        .subtotal(d.getSubtotal())
                         .build())
                 .collect(Collectors.toList())
                 : new ArrayList<>();
 
+        String numRecibo = venta.getRecibo() != null ? venta.getRecibo().getNumeroRecibo() : null;
+        Long reciboId = venta.getRecibo() != null ? venta.getRecibo().getId() : null;
+
         return VentaResponseDTO.builder()
                 .id(venta.getId())
-                .fechaVenta(venta.getFechaVenta())
+                .numeroVenta(venta.getNumeroVenta())
+                .fecha(venta.getFecha())
+                .fechaVenta(venta.getFecha())
                 .subtotal(venta.getSubtotal())
-                .igv(venta.getIgv())
+                .impuesto(venta.getImpuesto())
+                .igv(venta.getImpuesto())
                 .descuentoTotal(venta.getDescuentoTotal())
                 .total(venta.getTotal())
                 .requiereReceta(venta.isRequiereReceta())
                 .clienteId(venta.getCliente() != null ? venta.getCliente().getId() : null)
-                .clienteNombre(venta.getCliente() != null ? venta.getCliente().getNombreCompleto() : "Público General")
-                .clienteDocumento(venta.getCliente() != null ? venta.getCliente().getDniRuc() : "Sin Documento")
+                .clienteNombre(venta.getCliente() != null ? venta.getCliente().getNombreCompleto() : "PÚBLICO GENERAL")
+                .clienteDocumento(venta.getCliente() != null ? venta.getCliente().getNumeroDocumento() : "00000000")
                 .esClienteAmigo(esAmigo)
-                .reciboId(venta.getRecibo() != null ? venta.getRecibo().getId() : null)
-                .codigoComprobante(venta.getRecibo() != null ? venta.getRecibo().getCodigoComprobante() : null)
-                .metodoPago(venta.getMetodoPago() != null ? venta.getMetodoPago() : "EFECTIVO")
-                .tipoComprobante(venta.getTipoComprobante() != null ? venta.getTipoComprobante() : "BOLETA")
+                .usuarioId(venta.getUsuario() != null ? venta.getUsuario().getId() : null)
+                .usuarioNombre(venta.getUsuario() != null ? venta.getUsuario().getNombre() : null)
+                .reciboId(reciboId)
+                .numeroRecibo(numRecibo)
+                .codigoComprobante(numRecibo)
+                .metodoPagoId(venta.getMetodoPago() != null ? venta.getMetodoPago().getId() : null)
+                .metodoPago(venta.getMetodoPago() != null ? venta.getMetodoPago().getNombre() : "EFECTIVO")
+                .tipoComprobante(venta.getTipoComprobante())
+                .estado(venta.getEstado())
+                .observaciones(venta.getObservaciones())
                 .detalles(detallesDTO)
                 .build();
     }
