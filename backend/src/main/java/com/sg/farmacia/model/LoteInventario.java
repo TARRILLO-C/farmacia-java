@@ -47,7 +47,7 @@ public class LoteInventario {
     private Integer stockMinimo = 5;
 
     @Builder.Default
-    @Column(name = "precio_compra", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_compra", nullable = false)
     private Double precioCompra = 0.00;
 
     @Builder.Default

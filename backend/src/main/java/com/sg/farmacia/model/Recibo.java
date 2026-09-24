@@ -42,17 +42,17 @@ public class Recibo {
     @Column(name = "fecha_emision", nullable = false)
     private LocalDateTime fechaEmision = LocalDateTime.now();
 
-    @Column(name = "monto_subtotal", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto_subtotal", nullable = false)
     private Double montoSubtotal;
 
-    @Column(name = "monto_impuesto", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto_impuesto", nullable = false)
     private Double montoImpuesto;
 
     @Builder.Default
-    @Column(name = "monto_descuento", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto_descuento", nullable = false)
     private Double montoDescuento = 0.00;
 
-    @Column(name = "monto_total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monto_total", nullable = false)
     private Double montoTotal;
 
     @Column(name = "metodo_pago", nullable = false, length = 50)

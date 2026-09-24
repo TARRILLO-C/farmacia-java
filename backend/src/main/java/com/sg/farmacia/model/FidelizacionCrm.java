@@ -39,7 +39,7 @@ public class FidelizacionCrm {
     private String codigoAfiliado;
 
     @Builder.Default
-    @Column(name = "porcentaje_descuento", precision = 5, scale = 2)
+    @Column(name = "porcentaje_descuento")
     private Double porcentajeDescuento = 0.0;
 
     @Builder.Default

@@ -40,7 +40,7 @@ public class Producto {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
-    @Column(name = "precio_base_venta", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_base_venta", nullable = false)
     private Double precioBaseVenta;
 
     @Builder.Default
