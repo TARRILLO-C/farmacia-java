@@ -42,7 +42,7 @@ public class Compra {
     @Column(name = "fecha_compra", nullable = false)
     private LocalDateTime fechaCompra = LocalDateTime.now();
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double total;
 
     @Builder.Default
