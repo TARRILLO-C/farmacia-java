@@ -38,47 +38,65 @@ class ReciboServiceTest {
     void setUp() {
         clienteTest = Cliente.builder()
                 .id(1L)
-                .dniRuc("45892341")
+                .tipoDocumento("DNI")
+                .numeroDocumento("45892341")
                 .nombreCompleto("Maria Lopez")
-                .tipoCliente(TipoCliente.REGULAR)
                 .direccion("Av. Arequipa 500")
-                .puntosFidelidad(15)
                 .activo(true)
                 .build();
 
         Producto producto = Producto.builder()
                 .id(10L)
                 .nombre("Amoxicilina 500mg")
-                .codigoBarras("7759999001")
-                .precioVenta(15.0)
+                .codigo("7759999001")
+                .precioBaseVenta(15.0)
+                .activo(true)
+                .build();
+
+        LoteInventario lote = LoteInventario.builder()
+                .id(1L)
+                .producto(producto)
+                .codigoLote("LOT-AMOX-01")
+                .stockActual(20)
+                .activo(true)
                 .build();
 
         DetalleVenta detalle = DetalleVenta.builder()
                 .id(101L)
-                .producto(producto)
+                .lote(lote)
                 .cantidad(2)
                 .precioUnitario(15.0)
-                .subtotalItem(30.0)
+                .subtotal(30.0)
                 .build();
 
         ventaTest = Venta.builder()
                 .id(50L)
-                .fechaVenta(LocalDateTime.now())
+                .numeroVenta("VTA-2026-000001")
+                .fecha(LocalDateTime.now())
                 .subtotal(30.0)
-                .igv(5.4)
+                .impuesto(5.4)
                 .descuentoTotal(0.0)
                 .total(35.4)
-                .requiereReceta(true)
                 .cliente(clienteTest)
                 .detalles(new ArrayList<>(List.of(detalle)))
                 .build();
 
         reciboTest = Recibo.builder()
                 .id(1L)
-                .codigoComprobante("REC-2026-00001")
+                .numeroRecibo("REC-2026-00001")
+                .serie("B001")
+                .correlativo("00000001")
+                .tipoComprobante("BOLETA")
                 .fechaEmision(LocalDateTime.now())
+                .montoSubtotal(30.0)
+                .montoImpuesto(5.4)
+                .montoDescuento(0.0)
+                .montoTotal(35.4)
+                .metodoPago("EFECTIVO")
+                .clienteNombre("Maria Lopez")
+                .clienteDocumento("45892341")
+                .clienteDireccion("Av. Arequipa 500")
                 .venta(ventaTest)
-                .totalPagado(35.4)
                 .build();
     }
 
@@ -96,7 +114,7 @@ class ReciboServiceTest {
         assertEquals("45892341", response.getClienteDniRuc());
         assertEquals(1, response.getItems().size());
         assertEquals("Amoxicilina 500mg", response.getItems().get(0).getProductoNombre());
-        assertEquals("FARMACIA SAN GABRIEL", response.getNombreEstablecimiento());
+        assertEquals("SGF FARMACIA CENTRAL", response.getNombreEstablecimiento());
 
         verify(reciboRepository, times(1)).findByIdConDetalles(1L);
     }

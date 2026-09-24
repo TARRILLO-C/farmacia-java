@@ -6,8 +6,10 @@ import com.sg.farmacia.dto.producto.ProductoResponseDTO;
 import com.sg.farmacia.exception.BadRequestException;
 import com.sg.farmacia.exception.ResourceNotFoundException;
 import com.sg.farmacia.model.Categoria;
+import com.sg.farmacia.model.LoteInventario;
 import com.sg.farmacia.model.Producto;
 import com.sg.farmacia.repository.CategoriaRepository;
+import com.sg.farmacia.repository.LoteInventarioRepository;
 import com.sg.farmacia.repository.ProductoRepository;
 import com.sg.farmacia.service.impl.ProductoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,11 +38,24 @@ class ProductoServiceTest {
     @Mock
     private CategoriaRepository categoriaRepository;
 
+    @Mock
+    private LaboratorioService laboratorioService;
+
+    @Mock
+    private PrincipioActivoService principioActivoService;
+
+    @Mock
+    private PresentacionService presentacionService;
+
+    @Mock
+    private LoteInventarioRepository loteRepository;
+
     @InjectMocks
     private ProductoServiceImpl productoService;
 
     private Categoria categoriaTest;
     private Producto productoTest;
+    private LoteInventario loteTest;
     private ProductoRequestDTO requestDtoTest;
 
     @BeforeEach
@@ -52,14 +68,21 @@ class ProductoServiceTest {
 
         productoTest = Producto.builder()
                 .id(10L)
-                .codigoBarras("7750123450012")
+                .codigo("7750123450012")
                 .nombre("Paracetamol 500mg Forte")
-                .precioCompra(5.0)
-                .precioVenta(10.0)
-                .stock(50)
-                .stockMinimo(10)
-                .fechaCaducidad(LocalDate.now().plusMonths(6))
+                .precioBaseVenta(10.0)
                 .categoria(categoriaTest)
+                .activo(true)
+                .lotes(new ArrayList<>())
+                .build();
+
+        loteTest = LoteInventario.builder()
+                .id(1L)
+                .producto(productoTest)
+                .codigoLote("LOT-2026-01")
+                .stockActual(50)
+                .stockMinimo(10)
+                .fechaVencimiento(LocalDate.now().plusMonths(6))
                 .activo(true)
                 .build();
 
@@ -79,9 +102,13 @@ class ProductoServiceTest {
     @Test
     @DisplayName("Debe registrar un nuevo producto exitosamente asociado a su categoría")
     void crearProducto_Exito() {
-        when(productoRepository.existsByCodigoBarras("7750123450012")).thenReturn(false);
+        when(productoRepository.existsByCodigo("7750123450012")).thenReturn(false);
         when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoriaTest));
+        when(laboratorioService.resolverEntidad(any(), any())).thenReturn(null);
+        when(principioActivoService.resolverEntidad(any(), any())).thenReturn(null);
+        when(presentacionService.resolverEntidad(any(), any())).thenReturn(null);
         when(productoRepository.save(any(Producto.class))).thenReturn(productoTest);
+        when(loteRepository.save(any(LoteInventario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ProductoResponseDTO result = productoService.crear(requestDtoTest);
 
@@ -98,7 +125,7 @@ class ProductoServiceTest {
     @Test
     @DisplayName("Debe lanzar BadRequestException cuando el código de barras ya existe")
     void crearProducto_CodigoBarrasDuplicado_LanzaBadRequest() {
-        when(productoRepository.existsByCodigoBarras("7750123450012")).thenReturn(true);
+        when(productoRepository.existsByCodigo("7750123450012")).thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> productoService.crear(requestDtoTest));
         verify(productoRepository, never()).save(any(Producto.class));
@@ -107,7 +134,7 @@ class ProductoServiceTest {
     @Test
     @DisplayName("Debe lanzar ResourceNotFoundException cuando la categoría especificada no existe")
     void crearProducto_CategoriaInexistente_LanzaResourceNotFound() {
-        when(productoRepository.existsByCodigoBarras("7750123450012")).thenReturn(false);
+        when(productoRepository.existsByCodigo("7750123450012")).thenReturn(false);
         when(categoriaRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> productoService.crear(requestDtoTest));
@@ -117,8 +144,10 @@ class ProductoServiceTest {
     @Test
     @DisplayName("Debe incrementar el stock cuando el tipo de ajuste es ENTRADA")
     void ajustarStock_Entrada_IncrementaStock() {
+        productoTest.getLotes().add(loteTest);
         when(productoRepository.findById(10L)).thenReturn(Optional.of(productoTest));
-        when(productoRepository.save(any(Producto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(loteRepository.findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(10L))
+                .thenReturn(new ArrayList<>(List.of(loteTest)));
 
         AjusteStockRequestDTO ajusteDto = AjusteStockRequestDTO.builder()
                 .cantidad(20)
@@ -130,14 +159,16 @@ class ProductoServiceTest {
 
         assertNotNull(result);
         assertEquals(70, result.getStock()); // 50 + 20 = 70
-        verify(productoRepository, times(1)).save(productoTest);
+        verify(loteRepository, times(1)).save(loteTest);
     }
 
     @Test
     @DisplayName("Debe decrementar el stock cuando el tipo de ajuste es SALIDA")
     void ajustarStock_Salida_DecrementaStock() {
+        productoTest.getLotes().add(loteTest);
         when(productoRepository.findById(10L)).thenReturn(Optional.of(productoTest));
-        when(productoRepository.save(any(Producto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(loteRepository.findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(10L))
+                .thenReturn(new ArrayList<>(List.of(loteTest)));
 
         AjusteStockRequestDTO ajusteDto = AjusteStockRequestDTO.builder()
                 .cantidad(15)
@@ -149,12 +180,13 @@ class ProductoServiceTest {
 
         assertNotNull(result);
         assertEquals(35, result.getStock()); // 50 - 15 = 35
-        verify(productoRepository, times(1)).save(productoTest);
+        verify(loteRepository, times(1)).save(loteTest);
     }
 
     @Test
     @DisplayName("Debe lanzar BadRequestException si la salida supera el stock disponible")
     void ajustarStock_SalidaExcesiva_LanzaBadRequest() {
+        productoTest.getLotes().add(loteTest);
         when(productoRepository.findById(10L)).thenReturn(Optional.of(productoTest));
 
         AjusteStockRequestDTO ajusteDto = AjusteStockRequestDTO.builder()
@@ -167,13 +199,15 @@ class ProductoServiceTest {
                 () -> productoService.ajustarStock(10L, ajusteDto));
 
         assertTrue(ex.getMessage().contains("Stock insuficiente"));
-        verify(productoRepository, never()).save(any(Producto.class));
+        verify(loteRepository, never()).save(any(LoteInventario.class));
     }
 
     @Test
     @DisplayName("Debe listar productos con stock bajo o igual al límite indicado")
     void listarStockBajo_Exito() {
-        when(productoRepository.findByStockLessThanEqual(15)).thenReturn(List.of(productoTest));
+        productoTest.getLotes().add(loteTest);
+        loteTest.setStockActual(12);
+        when(productoRepository.findAllWithRelations()).thenReturn(List.of(productoTest));
 
         List<ProductoResponseDTO> results = productoService.listarStockBajo(15);
 

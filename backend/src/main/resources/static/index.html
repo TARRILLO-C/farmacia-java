@@ -28,6 +28,13 @@
       }
     }
   </script>
+  <style>
+    .endpoint-badge-get { background-color: #059669; color: white; }
+    .endpoint-badge-post { background-color: #2563eb; color: white; }
+    .endpoint-badge-put { background-color: #d97706; color: white; }
+    .endpoint-badge-patch { background-color: #7c3aed; color: white; }
+    .endpoint-badge-delete { background-color: #e11d48; color: white; }
+  </style>
 </head>
 <body class="min-h-full flex flex-col text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
 
@@ -42,10 +49,10 @@
           <h1 class="font-bold text-base leading-tight tracking-tight flex items-center gap-2">
             Sistema de Gestión Farmacéutica
             <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#319795]/20 text-[#81e6d9] border border-[#319795]/40">
-              API v1.0
+              API v2.0
             </span>
           </h1>
-          <p class="text-xs text-slate-300">Backend Gateway REST & Microservicios</p>
+          <p class="text-xs text-slate-300">Backend Gateway REST & 18 Tablas Relacionales</p>
         </div>
       </div>
 
@@ -65,7 +72,8 @@
   <!-- Hero & Estado de la Plataforma -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
     
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- Tarjetas de Métricas y Estado -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Card Estado -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
         <div class="flex items-center justify-between">
@@ -90,7 +98,7 @@
         </div>
         <div class="mt-3">
           <span class="text-xl font-black text-[#1a365d]">MySQL 8.0</span>
-          <span class="text-xs text-slate-500 block mt-0.5">farmacia_db @ 3306</span>
+          <span class="text-xs text-slate-500 block mt-0.5">18 Tablas Relacionales (`farmacia_db`)</span>
         </div>
       </div>
 
@@ -104,7 +112,7 @@
         </div>
         <div class="mt-3">
           <span class="text-xl font-black text-[#1a365d]">Spring Boot 3.4</span>
-          <span class="text-xs text-slate-500 block mt-0.5">Java 21 LTS + Security JWT</span>
+          <span class="text-xs text-slate-500 block mt-0.5">Java 21 LTS + JWT + RBAC 3 Roles</span>
         </div>
       </div>
 
@@ -120,7 +128,7 @@
           <span class="text-sm font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded block truncate">
             /api/v1
           </span>
-          <span class="text-xs text-slate-500 block mt-1">Puerto: 8080</span>
+          <span class="text-xs text-slate-500 block mt-1">Puerto Local: 8080</span>
         </div>
       </div>
     </div>
@@ -129,24 +137,24 @@
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
       <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-[#1a365d] tracking-tight">Catálogo de Endpoints de la API</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Especificación técnica de rutas, métodos, requerimientos de autorización y cuerpos de solicitud</p>
+          <h2 class="text-lg font-bold text-[#1a365d] tracking-tight">Catálogo Integral de Endpoints de la API (18 Tablas)</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Especificación completa de rutas, métodos, permisos RBAC (ADMIN, FARMACEUTICO, CAJERO) y contratos de datos</p>
         </div>
         
         <!-- Botón prueba rápida -->
-        <button onclick="probarApi()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs">
+        <button onclick="probarDiagnostico()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs">
           <svg class="w-3.5 h-3.5 text-[#319795]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
-          <span>Probar Conexión (Ping)</span>
+          <span>Diagnóstico de Conexión</span>
         </button>
       </div>
 
       <!-- Live Test Output box -->
       <div id="testBox" class="hidden p-4 bg-slate-900 text-slate-200 border-b border-slate-800 text-xs font-mono">
         <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-          <span class="text-emerald-400 font-bold">Respuesta del Servidor (GET /api/v1/auth - health):</span>
+          <span class="text-emerald-400 font-bold" id="testBoxTitle">Respuesta del Servidor:</span>
           <button onclick="document.getElementById('testBox').classList.add('hidden')" class="text-slate-400 hover:text-white">✕</button>
         </div>
-        <pre id="testOutput" class="mt-2 text-[11px] overflow-x-auto max-h-40"></pre>
+        <pre id="testOutput" class="mt-2 text-[11px] overflow-x-auto max-h-48"></pre>
       </div>
 
       <div class="divide-y divide-slate-100">
@@ -159,17 +167,14 @@
             </span>
             <span class="text-xs text-slate-400 font-mono">/api/v1/auth</span>
           </div>
-
           <div class="space-y-2">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-mono font-bold text-xs">POST</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/auth/login</span>
-                <span class="text-xs text-slate-500">Inicia sesión y obtiene el token JWT</span>
+                <span class="text-xs text-slate-500">Inicia sesión con username o email y obtiene el token JWT</span>
               </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">PÚBLICO</span>
-              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">PÚBLICO</span>
             </div>
           </div>
         </div>
@@ -178,37 +183,42 @@
         <div class="p-6 space-y-3">
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-1 rounded-lg bg-teal-50 text-[#287e7c] font-bold text-xs uppercase tracking-wider">
-              2. Ventas y Transacciones
+              2. Ventas y Transacciones (Tabla `ventas` y `detalle_ventas`)
             </span>
             <span class="text-xs text-slate-400 font-mono">/api/v1/ventas</span>
           </div>
-
           <div class="space-y-2">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">GET</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/ventas</span>
-                <span class="text-xs text-slate-500">Listar todas las ventas registradas</span>
+                <span class="text-xs text-slate-500">Listar todas las ventas registradas con cliente, detalles y recibo</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / CAJERO</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
-
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-mono font-bold text-xs">POST</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/ventas</span>
-                <span class="text-xs text-slate-500">Registrar venta y generar recibo automático</span>
+                <span class="text-xs text-slate-500">Procesar venta: selección FEFO de lotes, cálculo de IGV (18%), descuento CRM y emisión de recibo</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / CAJERO</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
-
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">GET</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/ventas/{id}</span>
+                <span class="text-xs text-slate-500">Obtener detalle de venta individual</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/ventas/historial</span>
-                <span class="text-xs text-slate-500">Filtro por rango de fechas (fechaInicio, fechaFin) o DNI</span>
+                <span class="text-xs text-slate-500">Filtro por rango de fechas (`fechaInicio`, `fechaFin`) o documento (`dni`)</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / CAJERO</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
           </div>
         </div>
@@ -217,19 +227,34 @@
         <div class="p-6 space-y-3">
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold text-xs uppercase tracking-wider">
-              3. Recibos y Comprobantes
+              3. Recibos y Comprobantes Fiscales (Tabla `recibos`)
             </span>
             <span class="text-xs text-slate-400 font-mono">/api/v1/recibos</span>
           </div>
-
           <div class="space-y-2">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">GET</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/recibos/{id}</span>
-                <span class="text-xs text-slate-500">Detalle estructurado para emisión de tickets y comprobantes</span>
+                <span class="text-xs text-slate-500">Detalle estructurado para emisión de tickets y comprobantes tributarios (serie/correlativo)</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / CAJERO</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/recibos/codigo/{codigo}</span>
+                <span class="text-xs text-slate-500">Buscar recibo por número de comprobante (ej: `B001-00000001`)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/recibos/venta/{ventaId}</span>
+                <span class="text-xs text-slate-500">Obtener recibo emitido para una venta específica</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
           </div>
         </div>
@@ -238,76 +263,300 @@
         <div class="p-6 space-y-3">
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-bold text-xs uppercase tracking-wider">
-              4. Catálogo de Fármacos y Productos
+              4. Catálogo de Fármacos y Productos (Tabla `productos`)
             </span>
             <span class="text-xs text-slate-400 font-mono">/api/v1/productos</span>
           </div>
-
           <div class="space-y-2">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">GET</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos</span>
-                <span class="text-xs text-slate-500">Listar productos con stock y precios</span>
+                <span class="text-xs text-slate-500">Listar productos con stock total calculado y filtros por `search` o `categoriaId`</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / CAJERO</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
-
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-mono font-bold text-xs">POST</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos/codigo/{codigo}</span>
+                <span class="text-xs text-slate-500">Buscar por código de barras / SKU</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos</span>
-                <span class="text-xs text-slate-500">Crear nuevo fármaco en inventario</span>
+                <span class="text-xs text-slate-500">Crear nuevo fármaco con vínculos a laboratorio, principio activo y presentación</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-put font-mono font-bold text-xs">PUT</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos/{id}</span>
+                <span class="text-xs text-slate-500">Actualizar datos de producto y precio base</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-patch font-mono font-bold text-xs">PATCH</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos/{id}/ajustar-stock</span>
+                <span class="text-xs text-slate-500">Ajuste manual de existencias en almacén</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-delete font-mono font-bold text-xs">DELETE</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/productos/{id}</span>
+                <span class="text-xs text-slate-500">Deshabilitar fármaco</span>
               </div>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
             </div>
           </div>
         </div>
 
-        <!-- 5. USUARIOS -->
+        <!-- 5. LOTES DE INVENTARIO -->
         <div class="p-6 space-y-3">
           <div class="flex items-center gap-2">
-            <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 font-bold text-xs uppercase tracking-wider">
-              5. Gestión de Usuarios y Permisos RBAC
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs uppercase tracking-wider">
+              5. Control de Lotes e Inventario FEFO (Tabla `lotes_inventario`)
             </span>
-            <span class="text-xs text-slate-400 font-mono">/api/v1/usuarios</span>
+            <span class="text-xs text-slate-400 font-mono">/api/v1/lotes</span>
           </div>
-
           <div class="space-y-2">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">GET</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/lotes</span>
+                <span class="text-xs text-slate-500">Listar todos los lotes de inventario (filtro opcional: `?productoId=X`)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/lotes/stock-bajo</span>
+                <span class="text-xs text-slate-500">Lotes que han alcanzado o descendido de su stock mínimo de seguridad</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/lotes/proximos-a-vencer</span>
+                <span class="text-xs text-slate-500">Alerta temprana de lotes con caducidad en N días (`?dias=30`)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/lotes</span>
+                <span class="text-xs text-slate-500">Crear o registrar nuevo lote manual de inventario</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. COMPRAS -->
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-orange-50 text-orange-800 font-bold text-xs uppercase tracking-wider">
+              6. Abastecimiento y Compras (Tablas `compras` y `detalle_compras`)
+            </span>
+            <span class="text-xs text-slate-400 font-mono">/api/v1/compras</span>
+          </div>
+          <div class="space-y-2">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/compras</span>
+                <span class="text-xs text-slate-500">Listar órdenes de compra con proveedores y fechas</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/compras/{id}</span>
+                <span class="text-xs text-slate-500">Consultar compra específica con sus ítems y lotes asignados</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/compras</span>
+                <span class="text-xs text-slate-500">Registrar factura de compra con ingreso e incremento automático de stock en `lotes_inventario`</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. PROVEEDORES -->
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-800 font-bold text-xs uppercase tracking-wider">
+              7. Proveedores Farmacéuticos (Tabla `proveedores`)
+            </span>
+            <span class="text-xs text-slate-400 font-mono">/api/v1/proveedores</span>
+          </div>
+          <div class="space-y-2">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/proveedores</span>
+                <span class="text-xs text-slate-500">Listar distribuidores y droguerías registradas</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/proveedores</span>
+                <span class="text-xs text-slate-500">Registrar proveedor con RUC y razón social</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">ADMIN / FARMA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. CLIENTES Y CRM -->
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-800 font-bold text-xs uppercase tracking-wider">
+              8. Clientes y CRM de Fidelización (Tablas `clientes` y `fidelizacion_crm`)
+            </span>
+            <span class="text-xs text-slate-400 font-mono">/api/v1/clientes</span>
+          </div>
+          <div class="space-y-2">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/clientes</span>
+                <span class="text-xs text-slate-500">Listar clientes con membresía y puntos acumulados</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/clientes/documento/{dniRuc}</span>
+                <span class="text-xs text-slate-500">Buscar cliente por DNI / RUC en caja (POS)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/clientes/amigo/{numeroClienteAmigo}</span>
+                <span class="text-xs text-slate-500">Buscar por código de afiliado (ej: `CA-10025`)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-post font-mono font-bold text-xs">POST</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/clientes</span>
+                <span class="text-xs text-slate-500">Registrar cliente y crear automáticamente membresía de descuento si aplica</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/fidelizacion</span>
+                <span class="text-xs text-slate-500">Consultar membresías, descuentos y saldos de puntos de fidelización</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. MICRO-CATÁLOGOS MÉDICOS -->
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-violet-50 text-violet-800 font-bold text-xs uppercase tracking-wider">
+              9. Micro-Catálogos Médicos (`categorias`, `laboratorios`, `principios_activos`, `presentaciones`)
+            </span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold text-slate-800">/api/v1/categorias</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">CRUD COMPLETO</span>
+              </div>
+              <p class="text-xs text-slate-500">Familias terapéuticas (Analgésicos, Antibióticos, etc.)</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold text-slate-800">/api/v1/laboratorios</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">CRUD COMPLETO</span>
+              </div>
+              <p class="text-xs text-slate-500">Fabricantes y laboratorios (Genfar, Medifarma, Bayer)</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold text-slate-800">/api/v1/principios-activos</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">CRUD COMPLETO</span>
+              </div>
+              <p class="text-xs text-slate-500">Sustancias farmacológicas activas (Paracetamol, Amoxicilina)</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold text-slate-800">/api/v1/presentaciones</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">CRUD COMPLETO</span>
+              </div>
+              <p class="text-xs text-slate-500">Formas galénicas (Tableta, Jarabe, Ampolla, Cápsula)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10. RRHH, USUARIOS Y MÉTODOS DE PAGO -->
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 font-bold text-xs uppercase tracking-wider">
+              10. Personal, Cuentas de Acceso y Métodos de Pago (`empleados`, `usuarios`, `roles`, `metodos_pago`)
+            </span>
+          </div>
+          <div class="space-y-2">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/empleados</span>
+                <span class="text-xs text-slate-500">Gestión de personal de nómina (DNI, nombres, teléfono)</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
                 <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/usuarios</span>
-                <span class="text-xs text-slate-500">Listar todos los operadores y módulos permitidos</span>
+                <span class="text-xs text-slate-500">Gestión de credenciales con asignación de empleado y rol</span>
               </div>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
             </div>
-
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-mono font-bold text-xs">POST</span>
-                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/usuarios</span>
-                <span class="text-xs text-slate-500">Registrar nuevo operador con módulos personalizados</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/roles</span>
+                <span class="text-xs text-slate-500">Listado de roles de seguridad (ADMIN, FARMACEUTICO, CAJERO)</span>
               </div>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
             </div>
-
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-amber-600 text-white font-mono font-bold text-xs">PUT</span>
-                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/usuarios/{id}</span>
-                <span class="text-xs text-slate-500">Actualizar datos, credenciales y permisos por módulo</span>
+                <span class="px-2.5 py-1 rounded-md endpoint-badge-get font-mono font-bold text-xs">GET</span>
+                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/metodos-pago</span>
+                <span class="text-xs text-slate-500">Métodos habilitados para cobro en mostrador (Efectivo, Tarjeta, Yape, Plin)</span>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
-            </div>
-
-            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <span class="px-2.5 py-1 rounded-md bg-indigo-600 text-white font-mono font-bold text-xs">PATCH</span>
-                <span class="font-mono text-xs font-semibold text-slate-800">/api/v1/usuarios/{id}/toggle-activo</span>
-                <span class="text-xs text-slate-500">Habilitar o inhabilitar acceso de cuenta</span>
-              </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">ADMIN ONLY</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">ADMIN / FARMA / CAJERO</span>
             </div>
           </div>
         </div>
@@ -320,26 +569,29 @@
   <footer class="bg-white border-t border-slate-200 mt-auto py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400">
       <p>Sistema de Gestión Farmacéutica © 2026 - Universidad de Chiclayo / Herramientas de Desarrollo</p>
+      <p class="mt-1 text-[11px] text-slate-400">Esquema Relacional: 18 Tablas MySQL • Motor FEFO de Almacén • SUNAT Comprobantes</p>
     </div>
   </footer>
 
   <script>
-    async function probarApi() {
+    async function probarDiagnostico() {
       const box = document.getElementById('testBox');
       const out = document.getElementById('testOutput');
+      const title = document.getElementById('testBoxTitle');
       box.classList.remove('hidden');
-      out.textContent = 'Enviando petición de diagnóstico...';
+      title.textContent = 'Verificando servicio de autenticación y conectividad:';
+      out.textContent = 'Enviando petición a /api/v1/auth/login...';
 
       try {
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'password-invalido' })
+          body: JSON.stringify({ username: 'admin', password: 'password-diagnostico' })
         });
         const data = await res.json();
-        out.textContent = `Status: ${res.status} (${res.statusText})\n` + JSON.stringify(data, null, 2);
+        out.textContent = `Status HTTP: ${res.status} (${res.statusText})\n` + JSON.stringify(data, null, 2);
       } catch (err) {
-        out.textContent = 'Error al contactar la API: ' + err.message;
+        out.textContent = 'No se pudo contactar con la API local: ' + err.message;
       }
     }
   </script>
