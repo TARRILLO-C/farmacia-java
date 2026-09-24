@@ -45,17 +45,17 @@ public class Venta {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double subtotal;
 
     @Builder.Default
-    @Column(name = "descuento_total", nullable = false, precision = 10, scale = 2)
+    @Column(name = "descuento_total", nullable = false)
     private Double descuentoTotal = 0.00;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double impuesto;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double total;
 
     @ManyToOne(fetch = FetchType.LAZY)

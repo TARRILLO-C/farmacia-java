@@ -36,14 +36,14 @@ public class DetalleVenta {
     @Column(nullable = false)
     private Integer cantidad;
 
-    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_unitario", nullable = false)
     private Double precioUnitario;
 
     @Builder.Default
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double descuento = 0.00;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private Double subtotal;
 
     // =========================================================================
