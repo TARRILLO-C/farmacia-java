@@ -2,7 +2,8 @@
 
 **Curso:** Herramientas de Desarrollo  
 **Ciclo Académico:** 2026-2  
-**Repositorio Oficial:** [https://github.com/TARRILLO-C/farmacia-java.git](https://github.com/TARRILLO-C/farmacia-java.git) k
+**Repositorio Oficial:** [https://github.com/TARRILLO-C/farmacia-java.git](https://github.com/TARRILLO-C/farmacia-java.git) CAMBIO DESDE MAIN
+
 
 ---
 
