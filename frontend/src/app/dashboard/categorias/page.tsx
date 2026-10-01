@@ -352,6 +352,7 @@ export default function CategoriasPage() {
         categoriaToEdit={categoriaToEdit}
       />
 
+            {/* MERGE */}
       {/* Diálogo de Eliminación con Shadcn Dialog */}
       <Dialog open={Boolean(categoriaToDelete)} onOpenChange={(open) => !open && !isDeleting && setCategoriaToDelete(null)}>
         <DialogContent>
