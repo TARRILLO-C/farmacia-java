@@ -40,6 +40,7 @@ import {
 import { getProductos } from '@/services/productoService';
 import { postVenta } from '@/services/ventaService';
 import { documentoCumpleComprobante } from '@/lib/documentoIdentidad';
+import { calcularTotalesVenta, precioConIgv, redondear, tasaDescuentoAmigo } from '@/lib/ventaTotales';
 import { ComprobanteClientePanel } from './components/ComprobanteClientePanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -231,33 +232,22 @@ export default function PosPage() {
     setSaleError(null);
   };
 
-  // Cálculos Financieros del Carrito
+  // Cálculos Financieros del Carrito: mismo cálculo que el backend (precio sin IGV + 18%)
   const totals = useMemo(() => {
-    const rawSubtotal = cart.reduce(
-      (acc, item) => acc + item.producto.precio * item.cantidad,
-      0
+    const isClienteAmigo = cliente?.esClienteAmigo === true;
+    const t = calcularTotalesVenta(
+      cart.map((item) => ({ precio: item.producto.precio, cantidad: item.cantidad })),
+      isClienteAmigo ? tasaDescuentoAmigo(cliente?.porcentajeDescuento) : 0
     );
 
-    // Descuento ClienteAmigo sobre el subtotal (5% por defecto, igual que el backend)
-    const isClienteAmigo = cliente?.esClienteAmigo === true;
-    const porcentaje = cliente?.porcentajeDescuento || 5;
-    const discountRate = isClienteAmigo ? (porcentaje > 1 ? porcentaje / 100 : porcentaje) : 0;
-    const discountAmount = Math.round(rawSubtotal * discountRate * 100) / 100;
-
-    const totalFinal = Math.max(0, rawSubtotal - discountAmount);
-
-    // Desglose tributario IGV (18%)
-    const baseImponible = totalFinal / 1.18;
-    const igvAmount = totalFinal - baseImponible;
-
     return {
-      rawSubtotal,
+      rawSubtotal: t.subtotal,
       isClienteAmigo,
-      discountRate,
-      discountAmount,
-      baseImponible,
-      igvAmount,
-      totalFinal,
+      discountRate: t.tasaDescuento,
+      discountAmount: t.descuento,
+      baseImponible: t.base,
+      igvAmount: t.igv,
+      totalFinal: t.total,
     };
   }, [cart, cliente]);
 
@@ -266,7 +256,7 @@ export default function PosPage() {
     if (metodoPago !== 'EFECTIVO' || !montoPagado) return 0;
     const pago = parseFloat(montoPagado);
     if (isNaN(pago) || pago < totals.totalFinal) return 0;
-    return Math.round((pago - totals.totalFinal) * 100) / 100;
+    return redondear(pago - totals.totalFinal);
   }, [metodoPago, montoPagado, totals.totalFinal]);
 
   // Validación para permitir venta: boleta exige DNI, factura exige RUC y la receta exige cliente
@@ -311,9 +301,7 @@ export default function PosPage() {
             productoId: item.producto.id,
             cantidad: item.cantidad,
             precioUnitario: item.producto.precio,
-            descuento: totals.isClienteAmigo
-              ? Math.round(item.producto.precio * item.cantidad * 0.05 * 100) / 100
-              : 0,
+            descuento: redondear(item.producto.precio * item.cantidad * totals.discountRate),
           })
         ),
         observaciones: (requiereReceta || cartHasControlledMeds)
@@ -387,8 +375,9 @@ export default function PosPage() {
     }).join('');
 
     const descTotal = Number(completedVenta.descuentoTotal || 0);
-    const subtotalCalc = Number(completedVenta.subtotal || (completedVenta.total - (completedVenta.impuesto ?? completedVenta.igv ?? 0) + descTotal));
     const igvCalc = Number(completedVenta.impuesto ?? completedVenta.igv ?? 0);
+    const subtotalCalc = Number(completedVenta.subtotal || (completedVenta.total - igvCalc + descTotal));
+    const opGravadaCalc = redondear(subtotalCalc - descTotal);
     const totalCalc = Number(completedVenta.total || 0);
     const vueltoCalc = Number(completedVuelto || 0);
 
@@ -517,16 +506,20 @@ export default function PosPage() {
           <div class="divider"></div>
 
           <div>
-            <div class="totals-row">
-              <span>Op. Gravada:</span>
-              <span>S/. ${subtotalCalc.toFixed(2)}</span>
-            </div>
             ${descTotal > 0 ? `
+              <div class="totals-row">
+                <span>Subtotal:</span>
+                <span>S/. ${subtotalCalc.toFixed(2)}</span>
+              </div>
               <div class="totals-row" style="font-weight: 600;">
                 <span>Descuento ClienteAmigo:</span>
                 <span>-S/. ${descTotal.toFixed(2)}</span>
               </div>
             ` : ''}
+            <div class="totals-row">
+              <span>Op. Gravada:</span>
+              <span>S/. ${opGravadaCalc.toFixed(2)}</span>
+            </div>
             <div class="totals-row">
               <span>IGV (18%):</span>
               <span>S/. ${igvCalc.toFixed(2)}</span>
@@ -751,8 +744,11 @@ export default function PosPage() {
                             <span>Stock: {prod.stock} u.</span>
                           )}
                         </span>
-                        <span className="text-sm font-black text-[#1a365d]">
-                          S/. {prod.precio.toFixed(2)}
+                        <span className="text-sm font-black text-[#1a365d]" title="Precio final con IGV">
+                          S/. {precioConIgv(prod.precio).toFixed(2)}
+                        </span>
+                        <span className="text-[9.5px] text-slate-400 font-mono">
+                          {prod.precio.toFixed(2)} + IGV
                         </span>
                       </div>
 
@@ -857,7 +853,7 @@ export default function PosPage() {
                 </div>
               ) : (
                 cart.map((item) => {
-                  const itemSubtotal = item.producto.precio * item.cantidad;
+                  const itemSubtotal = redondear(item.producto.precio * item.cantidad);
 
                   return (
                     <div
@@ -876,7 +872,7 @@ export default function PosPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-                          <span>S/. {item.producto.precio.toFixed(2)} c/u</span>
+                          <span>S/. {item.producto.precio.toFixed(2)} c/u sin IGV</span>
                           <span>•</span>
                           <span className="font-bold text-[#1a365d]">
                             S/. {itemSubtotal.toFixed(2)}
@@ -926,23 +922,29 @@ export default function PosPage() {
               {/* Desglose de Precios */}
               <div className="space-y-1.5 text-xs text-slate-600">
                 <div className="flex justify-between">
-                  <span>Subtotal:</span>
+                  <span>Subtotal (sin IGV):</span>
                   <span className="font-mono">S/. {totals.rawSubtotal.toFixed(2)}</span>
                 </div>
 
                 {totals.isClienteAmigo && (
-                  <div className="flex justify-between text-amber-700 font-semibold">
-                    <span className="flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-amber-500" />
-                      Descuento ClienteAmigo ({Math.round(totals.discountRate * 100)}%):
-                    </span>
-                    <span className="font-mono">-S/. {totals.discountAmount.toFixed(2)}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-amber-700 font-semibold">
+                      <span className="flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-amber-500" />
+                        Descuento ClienteAmigo ({Math.round(totals.discountRate * 100)}%):
+                      </span>
+                      <span className="font-mono">-S/. {totals.discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Op. gravada:</span>
+                      <span className="font-mono">S/. {totals.baseImponible.toFixed(2)}</span>
+                    </div>
+                  </>
                 )}
 
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>IGV Incluido (18%):</span>
-                  <span className="font-mono">S/. {totals.igvAmount.toFixed(2)}</span>
+                <div className="flex justify-between">
+                  <span>IGV (18%):</span>
+                  <span className="font-mono">+S/. {totals.igvAmount.toFixed(2)}</span>
                 </div>
 
                 <Separator className="my-1 bg-slate-200" />
@@ -1181,6 +1183,12 @@ export default function PosPage() {
                   <span>-S/. {Number(completedVenta.descuentoTotal || 0).toFixed(2)}</span>
                 </div>
               )}
+              <div className="flex justify-between text-slate-500 text-[11px]">
+                <span>Op. gravada:</span>
+                <span>
+                  S/. {redondear(Number(completedVenta.subtotal || 0) - Number(completedVenta.descuentoTotal || 0)).toFixed(2)}
+                </span>
+              </div>
               <div className="flex justify-between text-slate-500 text-[11px]">
                 <span>IGV (18%):</span>
                 <span>S/. {Number(completedVenta.impuesto ?? completedVenta.igv ?? 0).toFixed(2)}</span>
