@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { AxiosError } from 'axios';
 import {
   ShoppingCart,
   Search,
@@ -9,9 +10,8 @@ import {
   Plus,
   Minus,
   Trash2,
-  User,
-  UserCheck,
   Star,
+  Loader2,
   ShieldAlert,
   FileCheck,
   CreditCard,
@@ -30,17 +30,17 @@ import {
 } from 'lucide-react';
 import {
   Producto,
-  Cliente,
-  TipoCliente,
   CreateVentaDTO,
   CreateDetalleVentaDTO,
+  DocumentoConsulta,
   MetodoPago,
   TipoComprobante,
   Venta,
 } from '@/types';
 import { getProductos } from '@/services/productoService';
-import { buscarClientePorDocumentoOCodigo, getClientes } from '@/services/clienteService';
 import { postVenta } from '@/services/ventaService';
+import { documentoCumpleComprobante } from '@/lib/documentoIdentidad';
+import { ComprobanteClientePanel } from './components/ComprobanteClientePanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,22 @@ interface CartItem {
   cantidad: number;
 }
 
+const ETIQUETA_BOTON: Record<TipoComprobante, string> = {
+  BOLETA: 'Boleta',
+  FACTURA: 'Factura',
+  TICKET: 'Ticket',
+};
+
+const TITULO_COMPROBANTE: Record<TipoComprobante, string> = {
+  BOLETA: 'BOLETA DE VENTA ELECTRÓNICA',
+  FACTURA: 'FACTURA ELECTRÓNICA',
+  TICKET: 'TICKET DE VENTA',
+};
+
+// Los nombres vienen de RENIEC/SUNAT y se escriben en el iframe de impresión
+const escapeHtml = (texto: string): string =>
+  texto.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
 export default function PosPage() {
   // Catálogo y Búsqueda
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -64,11 +80,8 @@ export default function PosPage() {
   // Carrito de compras
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Cliente y Programa ClienteAmigo
-  const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-  const [isSearchingClient, setIsSearchingClient] = useState(false);
-  const [clientSearchError, setClientSearchError] = useState<string | null>(null);
+  // Cliente (DNI para boleta, RUC para factura) y Programa ClienteAmigo
+  const [cliente, setCliente] = useState<DocumentoConsulta | null>(null);
 
   // Validación de Receta Médica
   const [requiereReceta, setRequiereReceta] = useState(false);
@@ -80,7 +93,11 @@ export default function PosPage() {
 
   // Proceso de Finalización de Venta
   const [isProcessingSale, setIsProcessingSale] = useState(false);
+  const [saleError, setSaleError] = useState<string | null>(null);
   const [completedVenta, setCompletedVenta] = useState<Venta | null>(null);
+  // Copia del cliente y comprobante al momento de emitir (para el ticket impreso)
+  const [completedCliente, setCompletedCliente] = useState<DocumentoConsulta | null>(null);
+  const [completedTipo, setCompletedTipo] = useState<TipoComprobante>('BOLETA');
   const [completedVuelto, setCompletedVuelto] = useState<number>(0);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
@@ -203,36 +220,15 @@ export default function PosPage() {
     }
   }, [cartHasControlledMeds]);
 
-  // 2. Búsqueda de Cliente / ClienteAmigo por DNI, RUC o Código
-  const handleSearchCliente = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const query = clientSearchTerm.trim();
-    if (!query) return;
+  // 2. Cliente: cualquier cambio de cliente o comprobante descarta el último error de venta
+  const handleClienteChange = useCallback((nuevo: DocumentoConsulta | null) => {
+    setCliente(nuevo);
+    setSaleError(null);
+  }, []);
 
-    setIsSearchingClient(true);
-    setClientSearchError(null);
-
-    try {
-      // 1. Intentar API
-      const clienteFound = await buscarClientePorDocumentoOCodigo(query);
-      if (clienteFound) {
-        const singleCliente = Array.isArray(clienteFound) ? (clienteFound as any)[0] : clienteFound;
-        setSelectedCliente(singleCliente);
-        setClientSearchTerm('');
-        return;
-      }
-
-      setClientSearchError(`No se encontró ningún cliente registrado con documento o código "${query}".`);
-    } catch {
-      setClientSearchError(`Error al consultar cliente con documento "${query}".`);
-    } finally {
-      setIsSearchingClient(false);
-    }
-  };
-
-  const clearSelectedCliente = () => {
-    setSelectedCliente(null);
-    setClientSearchError(null);
+  const handleTipoComprobanteChange = (tipo: TipoComprobante) => {
+    setTipoComprobante(tipo);
+    setSaleError(null);
   };
 
   // Cálculos Financieros del Carrito
@@ -242,9 +238,10 @@ export default function PosPage() {
       0
     );
 
-    // Descuento ClienteAmigo: 5% sobre el subtotal
-    const isClienteAmigo = selectedCliente?.esClienteAmigo === true;
-    const discountRate = isClienteAmigo ? 0.05 : 0;
+    // Descuento ClienteAmigo sobre el subtotal (5% por defecto, igual que el backend)
+    const isClienteAmigo = cliente?.esClienteAmigo === true;
+    const porcentaje = cliente?.porcentajeDescuento || 5;
+    const discountRate = isClienteAmigo ? (porcentaje > 1 ? porcentaje / 100 : porcentaje) : 0;
     const discountAmount = Math.round(rawSubtotal * discountRate * 100) / 100;
 
     const totalFinal = Math.max(0, rawSubtotal - discountAmount);
@@ -262,7 +259,7 @@ export default function PosPage() {
       igvAmount,
       totalFinal,
     };
-  }, [cart, selectedCliente]);
+  }, [cart, cliente]);
 
   // Cálculo de vuelto para pago en efectivo
   const vueltoCalculado = useMemo(() => {
@@ -272,22 +269,35 @@ export default function PosPage() {
     return Math.round((pago - totals.totalFinal) * 100) / 100;
   }, [metodoPago, montoPagado, totals.totalFinal]);
 
-  // Validación para permitir venta
-  // Si requiere receta médica, exige obligatoriamente un cliente asignado
-  const isPrescriptionBlocked = requiereReceta && !selectedCliente;
+  // Validación para permitir venta: boleta exige DNI, factura exige RUC y la receta exige cliente
+  const isPrescriptionBlocked = requiereReceta && !cliente;
   const isCartEmpty = cart.length === 0;
-  const canFinalize = !isCartEmpty && !isPrescriptionBlocked && !isProcessingSale;
+  const documentoOk =
+    tipoComprobante === 'TICKET' ||
+    (!!cliente && documentoCumpleComprobante(tipoComprobante, cliente.numeroDocumento));
+  const pagoInsuficiente =
+    metodoPago === 'EFECTIVO' && montoPagado !== '' && parseFloat(montoPagado) < totals.totalFinal;
+
+  const pendientes: string[] = [];
+  if (isCartEmpty) pendientes.push('Agregue al menos un producto');
+  if (!documentoOk) pendientes.push(tipoComprobante === 'FACTURA' ? 'Ingrese el RUC del cliente' : 'Ingrese el DNI del cliente');
+  if (isPrescriptionBlocked && documentoOk) pendientes.push('Asigne un cliente para la receta médica');
+  if (pagoInsuficiente) pendientes.push('El monto recibido no cubre el total');
+
+  const canFinalize = pendientes.length === 0 && !isProcessingSale;
 
   // 4. Finalizar Venta: Formatear JSON y enviar a postVenta()
   const handleFinalizarVenta = async () => {
     if (!canFinalize) return;
 
     setIsProcessingSale(true);
+    setSaleError(null);
 
     try {
-      const payload: any = {
-        clienteId: selectedCliente?.id || null,
-        numeroClienteAmigo: selectedCliente?.codigoClienteAmigo || selectedCliente?.numeroClienteAmigo || null,
+      const payload: CreateVentaDTO = {
+        clienteId: cliente?.clienteId,
+        numeroDocumento: cliente?.numeroDocumento,
+        numeroClienteAmigo: cliente?.codigoClienteAmigo,
         requiereReceta: Boolean(requiereReceta || cartHasControlledMeds),
         usuarioId: 1, // ID del cajero/usuario actual
         metodoPago,
@@ -307,45 +317,13 @@ export default function PosPage() {
           })
         ),
         observaciones: (requiereReceta || cartHasControlledMeds)
-          ? `Dispensación bajo receta médica verificada para ${selectedCliente?.nombreCompleto || `${selectedCliente?.nombre || ''} ${selectedCliente?.apellido || ''}`.trim() || 'Cliente'}`
+          ? `Dispensación bajo receta médica verificada para ${cliente?.nombreCompleto || 'Cliente'}`
           : undefined,
       };
 
-      console.log('Enviando transacción a postVenta():', payload);
-
-      let resultVenta: Venta;
-      try {
-        resultVenta = await postVenta(payload);
-        if (metodoPago) resultVenta.metodoPago = metodoPago;
-        if (tipoComprobante) resultVenta.tipoComprobante = tipoComprobante;
-      } catch (apiErr) {
-        console.warn('API postVenta() falló o no está conectada. Generando comprobante local:', apiErr);
-        // Simulación local de Venta exitosa
-        resultVenta = {
-          id: Date.now(),
-          numeroVenta: `VTA-${Math.floor(100000 + Math.random() * 900000)}`,
-          fecha: new Date().toISOString(),
-          clienteId: selectedCliente?.id,
-          cliente: selectedCliente || undefined,
-          usuarioId: 1,
-          detalles: cart.map((item, idx) => ({
-            id: idx + 1,
-            productoId: item.producto.id,
-            producto: item.producto,
-            cantidad: item.cantidad,
-            precioUnitario: item.producto.precio,
-            descuento: totals.isClienteAmigo ? item.producto.precio * item.cantidad * 0.05 : 0,
-            subtotal: item.producto.precio * item.cantidad,
-          })),
-          subtotal: totals.rawSubtotal,
-          descuentoTotal: totals.discountAmount,
-          impuesto: totals.igvAmount,
-          total: totals.totalFinal,
-          metodoPago,
-          estado: 'COMPLETADA',
-          observaciones: payload.observaciones,
-        };
-      }
+      const resultVenta = await postVenta(payload);
+      if (metodoPago) resultVenta.metodoPago = metodoPago;
+      if (tipoComprobante) resultVenta.tipoComprobante = tipoComprobante;
 
       // Descontar stock localmente para retroalimentación visual inmediata
       setProductos((prev) =>
@@ -359,15 +337,24 @@ export default function PosPage() {
       );
 
       setCompletedVenta(resultVenta);
+      setCompletedCliente(cliente);
+      setCompletedTipo(tipoComprobante);
       setCompletedVuelto(vueltoCalculado);
       setIsSuccessModalOpen(true);
 
-      // Limpiar carrito y monto
+      // Limpiar carrito, monto y cliente para la siguiente venta
       setCart([]);
       setMontoPagado('');
+      setCliente(null);
     } catch (error) {
-      console.error('Error al procesar la venta:', error);
-      alert('Error inesperado al emitir la venta. Inténtelo nuevamente.');
+      // Sin comprobante simulado: si el backend rechaza la venta, el cajero debe ver el motivo real
+      const err = error as AxiosError<{ message?: string }>;
+      setSaleError(
+        err.response?.data?.message ||
+          (err.response
+            ? 'No se pudo emitir el comprobante. Inténtelo nuevamente.'
+            : 'No hay conexión con el servidor. La venta no se registró.')
+      );
     } finally {
       setIsProcessingSale(false);
     }
@@ -376,19 +363,19 @@ export default function PosPage() {
   const handlePrintReceipt = () => {
     if (!completedVenta) return;
 
-    const clienteName = completedVenta.clienteNombre ||
-      (completedVenta.cliente
-        ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido || ''}`.trim()
-        : 'PÚBLICO GENERAL');
-
-    const clienteDoc = completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad || '';
-    const numComprobante = completedVenta.numeroVenta || completedVenta.codigoComprobante || `VTA-${completedVenta.id}`;
+    const clienteName = escapeHtml(completedCliente?.nombreCompleto || completedVenta.clienteNombre || 'PÚBLICO GENERAL');
+    const clienteDocRaw = completedCliente?.numeroDocumento || completedVenta.clienteDocumento || '';
+    const clienteDoc = clienteDocRaw === '00000000' ? '' : escapeHtml(clienteDocRaw);
+    const clienteDocLabel = completedCliente?.tipoDocumento || (clienteDocRaw.length === 11 ? 'RUC' : 'DNI');
+    const clienteDir = completedTipo === 'FACTURA' && completedCliente?.direccion ? escapeHtml(completedCliente.direccion) : '';
+    const tituloComprobante = TITULO_COMPROBANTE[completedTipo];
+    const numComprobante = completedVenta.codigoComprobante || completedVenta.numeroVenta || `VTA-${completedVenta.id}`;
     const metodo = completedVenta.metodoPago || 'EFECTIVO';
     const fechaHora = new Date().toLocaleString('es-PE');
 
     const itemsHtml = (completedVenta.detalles || []).map((d: any) => {
       const cant = d.cantidad || 1;
-      const nombre = d.productoNombre || d.producto?.nombre || `Fármaco #${d.productoId}`;
+      const nombre = escapeHtml(d.productoNombre || d.producto?.nombre || `Fármaco #${d.productoId}`);
       const precioUnit = Number(d.precioUnitario || 0).toFixed(2);
       const sub = Number(d.subtotal ?? d.subtotalItem ?? (d.precioUnitario * d.cantidad || 0)).toFixed(2);
       return `
@@ -489,7 +476,7 @@ export default function PosPage() {
             <p>Av. Balta 1045 - Chiclayo, Lambayeque</p>
             <p>Tel: (074) 234567 • Cel: 974839201</p>
             <div class="divider"></div>
-            <div class="ticket-title">${tipoComprobante} ELECTRÓNICA</div>
+            <div class="ticket-title">${tituloComprobante}</div>
             <div style="font-weight: bold; font-size: 12px;">${numComprobante}</div>
           </div>
 
@@ -501,10 +488,11 @@ export default function PosPage() {
               <td>${fechaHora}</td>
             </tr>
             <tr>
-              <td style="font-weight: bold;">Cliente:</td>
+              <td style="font-weight: bold;">${clienteDocLabel === 'RUC' ? 'Razón Soc.:' : 'Cliente:'}</td>
               <td>${clienteName}</td>
             </tr>
-            ${clienteDoc ? `<tr><td style="font-weight: bold;">Doc/DNI:</td><td>${clienteDoc}</td></tr>` : ''}
+            ${clienteDoc ? `<tr><td style="font-weight: bold;">${clienteDocLabel}:</td><td>${clienteDoc}</td></tr>` : ''}
+            ${clienteDir ? `<tr><td style="font-weight: bold;">Dirección:</td><td>${clienteDir}</td></tr>` : ''}
             <tr>
               <td style="font-weight: bold;">Med. Pago:</td>
               <td>${metodo}</td>
@@ -805,99 +793,15 @@ export default function PosPage() {
                   {cart.reduce((sum, item) => sum + item.cantidad, 0)} ítems
                 </Badge>
               </div>
-
-              {/* Selector de Comprobante */}
-              <div className="flex items-center gap-1 bg-white p-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold">
-                {(['BOLETA', 'FACTURA', 'TICKET'] as TipoComprobante[]).map((tipo) => (
-                  <button
-                    key={tipo}
-                    type="button"
-                    onClick={() => setTipoComprobante(tipo)}
-                    className={`px-2 py-0.5 rounded-lg transition-colors ${
-                      tipoComprobante === tipo
-                        ? 'bg-[#1a365d] text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {tipo}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* SECCIÓN 2: CLIENTE / PROGRAMA CLIENTEAMIGO */}
-            <div className="p-3.5 bg-teal-50/30 border-b border-slate-100 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#1a365d] flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#319795]" />
-                  Cliente / Programa ClienteAmigo
-                </span>
-                {selectedCliente && (
-                  <button
-                    onClick={clearSelectedCliente}
-                    className="text-[11px] text-rose-600 hover:underline font-semibold"
-                  >
-                    Cambiar / Quitar
-                  </button>
-                )}
-              </div>
-
-              {selectedCliente ? (
-                // Tarjeta de Cliente Seleccionado
-                <div className="p-2.5 rounded-xl bg-white border border-teal-200/80 shadow-2xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">
-                      {selectedCliente.nombreCompleto ||
-                        `${selectedCliente.nombre || ''} ${selectedCliente.apellido || ''}`.trim() ||
-                        'Cliente Registrado'}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                      {selectedCliente.tipoDocumento || (selectedCliente.documentoIdentidad?.length === 11 ? 'RUC' : 'DNI')}: {selectedCliente.documentoIdentidad || selectedCliente.dniRuc}
-                    </span>
-                  </div>
-
-                  {selectedCliente.esClienteAmigo ? (
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 p-1.5 rounded-lg border border-amber-200/80">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-                      <span>Beneficiario ClienteAmigo ({selectedCliente.porcentajeDescuento || 5}% Descuento Aplicado)</span>
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                      <UserCheck className="w-3 h-3 text-emerald-500" />
-                      <span>Cliente Regular Registrado</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Buscador de Cliente
-                <form onSubmit={handleSearchCliente} className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      placeholder="DNI, RUC o Código ClienteAmigo..."
-                      value={clientSearchTerm}
-                      onChange={(e) => setClientSearchTerm(e.target.value)}
-                      className="h-8 text-xs bg-white rounded-xl border-slate-200"
-                    />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={isSearchingClient || !clientSearchTerm.trim()}
-                      className="h-8 px-3 text-xs bg-[#319795] hover:bg-[#287e7c] text-white rounded-xl"
-                    >
-                      {isSearchingClient ? 'Buscando...' : 'Buscar'}
-                    </Button>
-                  </div>
-                  {clientSearchError && (
-                    <p className="text-[11px] text-rose-600 font-medium">
-                      {clientSearchError}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-slate-400">
-                    Clientes con suscripción <b>ClienteAmigo</b> obtienen 5% de descuento directo.
-                  </p>
-                </form>
-              )}
-            </div>
+            {/* SECCIÓN 2: COMPROBANTE Y CLIENTE (DNI → boleta, RUC → factura) */}
+            <ComprobanteClientePanel
+              tipoComprobante={tipoComprobante}
+              onTipoComprobanteChange={handleTipoComprobanteChange}
+              cliente={cliente}
+              onClienteChange={handleClienteChange}
+            />
 
             {/* SECCIÓN 3: VALIDACIÓN DE RECETA MÉDICA */}
             <div className="p-3 bg-slate-50/80 border-b border-slate-100 space-y-2">
@@ -922,20 +826,20 @@ export default function PosPage() {
               {requiereReceta && (
                 <div
                   className={`p-2 rounded-xl text-[11px] border flex items-start gap-2 ${
-                    !selectedCliente
+                    !cliente
                       ? 'bg-rose-50 border-rose-200 text-rose-800'
                       : 'bg-emerald-50 border-emerald-200 text-emerald-800'
                   }`}
                 >
                   <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
                   <div>
-                    {!selectedCliente ? (
+                    {!cliente ? (
                       <span>
-                        <b>Acción obligatoria:</b> Debe buscar y asignar un cliente con DNI/RUC registrado para autorizar fármacos bajo receta.
+                        <b>Acción obligatoria:</b> Ingrese el DNI o RUC del paciente para autorizar fármacos bajo receta.
                       </span>
                     ) : (
                       <span>
-                        Receta médica autorizada para <b>{selectedCliente.nombre} {selectedCliente.apellido}</b>.
+                        Receta médica autorizada para <b>{cliente.nombreCompleto}</b>.
                       </span>
                     )}
                   </div>
@@ -1030,7 +934,7 @@ export default function PosPage() {
                   <div className="flex justify-between text-amber-700 font-semibold">
                     <span className="flex items-center gap-1">
                       <Star className="w-3 h-3 fill-amber-500" />
-                      Descuento ClienteAmigo (5%):
+                      Descuento ClienteAmigo ({Math.round(totals.discountRate * 100)}%):
                     </span>
                     <span className="font-mono">-S/. {totals.discountAmount.toFixed(2)}</span>
                   </div>
@@ -1122,7 +1026,28 @@ export default function PosPage() {
               </div>
 
               {/* BOTÓN FINALIZAR VENTA */}
-              <div className="pt-2">
+              <div className="pt-2 space-y-2">
+                {saleError && (
+                  <div
+                    role="alert"
+                    className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
+                    <div className="flex-1">
+                      <b className="block">La venta no se registró</b>
+                      <span>{saleError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSaleError(null)}
+                      aria-label="Cerrar aviso"
+                      className="text-rose-400 hover:text-rose-700 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 <Button
                   onClick={handleFinalizarVenta}
                   disabled={!canFinalize}
@@ -1132,18 +1057,23 @@ export default function PosPage() {
                       : 'bg-gradient-to-r from-[#319795] to-[#287e7c] hover:from-[#287e7c] hover:to-[#236c6b] text-white'
                   }`}
                 >
-                  <Receipt className="w-4 h-4" />
+                  {isProcessingSale ? <Loader2 className="w-4 h-4 animate-spin" /> : <Receipt className="w-4 h-4" />}
                   <span>
                     {isProcessingSale
-                      ? 'Emitiendo Comprobante...'
-                      : `Finalizar Venta • S/. ${totals.totalFinal.toFixed(2)}`}
+                      ? 'Emitiendo comprobante...'
+                      : `Emitir ${ETIQUETA_BOTON[tipoComprobante]} • S/. ${totals.totalFinal.toFixed(2)}`}
                   </span>
                 </Button>
 
-                {isPrescriptionBlocked && (
-                  <p className="text-[11px] text-rose-600 font-bold text-center mt-2">
-                    Debe asignar un cliente registrado para emitir venta con receta médica.
-                  </p>
+                {pendientes.length > 0 && !isCartEmpty && (
+                  <ul className="space-y-0.5" aria-live="polite">
+                    {pendientes.map((p) => (
+                      <li key={p} className="text-[11px] text-slate-500 flex items-center gap-1.5 justify-center">
+                        <Info className="w-3 h-3 text-amber-500 shrink-0" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </div>
@@ -1195,21 +1125,26 @@ export default function PosPage() {
               </span>
               <span className="text-[10px] text-slate-500 block">RUC: 20489123891 • Chiclayo, Perú</span>
               <span className="text-xs font-bold text-[#1a365d] mt-1 block">
-                {tipoComprobante} ELECTRÓNICA: {completedVenta.numeroVenta || completedVenta.codigoComprobante || `VTA-${completedVenta.id}`}
+                {TITULO_COMPROBANTE[completedTipo]}
+              </span>
+              <span className="text-xs font-bold text-slate-900 block">
+                {completedVenta.codigoComprobante || completedVenta.numeroVenta || `VTA-${completedVenta.id}`}
               </span>
             </div>
 
             <div className="text-[11px] space-y-0.5 text-slate-600">
               <div>
-                <b>Cliente:</b>{' '}
-                {completedVenta.clienteNombre ||
-                  (completedVenta.cliente
-                    ? `${completedVenta.cliente.nombre} ${completedVenta.cliente.apellido || ''}`.trim()
-                    : 'PÚBLICO GENERAL')}
+                <b>{completedCliente?.tipoDocumento === 'RUC' ? 'Razón social:' : 'Cliente:'}</b>{' '}
+                {completedCliente?.nombreCompleto || completedVenta.clienteNombre || 'PÚBLICO GENERAL'}
               </div>
-              {(completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad) && (
+              {completedCliente && (
                 <div>
-                  <b>Documento:</b> {completedVenta.clienteDocumento || completedVenta.cliente?.documentoIdentidad}
+                  <b>{completedCliente.tipoDocumento}:</b> {completedCliente.numeroDocumento}
+                </div>
+              )}
+              {completedTipo === 'FACTURA' && completedCliente?.direccion && (
+                <div>
+                  <b>Dirección:</b> {completedCliente.direccion}
                 </div>
               )}
               <div>
