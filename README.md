@@ -14,7 +14,7 @@
 | 1 | Arroyo Vega, Carlos Felipe | U23214686 | 
 | 2 | Bustamante Suclupe, Carlos Andres | U23214477 |
 | 3 | Llapapasca Montes, Ronal James | U22221880 | 
-| 4 | Miñan Gonzales, Danna Jael |  | U23204576 |
+| 4 | Miñan Gonzales, Danna Jael | U23204576 |
 | 5 | Tarrillo Condor, Nigson Shrimi | U23224391 | 
 
 ---
@@ -30,7 +30,7 @@ El proyecto adopta una estructura desacoplada mediante un esquema de repositorio
 ```
 farmacia-java/
 ├── .vscode/                               # Configuraciones de workspace compartidas para VS Code
-├── backend/                               # Servidor de Servicios RESTful (Spring Boot 3 / Java 21)
+├── backend/                               # Servidor de Servicios RESTful (Spring Boot 4 / Java 21)
 │   ├── .mvn/wrapper/                      # Wrapper oficial de Apache Maven
 │   ├── mvnw / mvnw.cmd                    # Scripts de ejecución portable de Maven sin instalación previa
 │   ├── pom.xml                            # Descriptor de dependencias y plugins Maven

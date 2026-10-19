@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Organigrama de la farmacia</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .org { position: relative; width: 1100px; height: 700px; }
+  .caja { position: absolute; width: 230px; border-radius: 8px; text-align: center; padding: 12px 10px; font-size: 14px; line-height: 1.35; box-sizing: border-box; }
+  .caja b { display: block; font-size: 16px; margin-bottom: 3px; }
+  .n1 { background: var(--azul); color: #fff; }
+  .n2 { background: var(--teal); color: #fff; }
+  .n3 { background: var(--teal-claro); border: 1.5px solid var(--teal); color: var(--texto); }
+  .staff { background: #fff; border: 2px solid var(--azul); color: var(--texto); }
+  .externo { background: #fff; border: 2px dashed var(--borde); color: var(--texto); }
+  .etiqueta { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: bold; letter-spacing: .04em; text-transform: uppercase; color: #64748b; }
+  .n1 .etiqueta, .n2 .etiqueta { color: #e2e8f0; }
+  svg.lineas { position: absolute; inset: 0; }
+  .leyenda { position: absolute; left: 0; bottom: 0; display: flex; gap: 26px; font-size: 13px; color: #475569; align-items: center; }
+  .leyenda span { display: inline-flex; align-items: center; gap: 8px; }
+  .leyenda i { display: inline-block; width: 34px; border-top: 2.5px solid var(--linea); }
+  .leyenda i.d { border-top-style: dashed; border-color: var(--borde); }
+  .leyenda em { display: inline-block; width: 22px; height: 14px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="org">
+  <svg class="lineas" width="1100" height="700" viewBox="0 0 1100 700">
+    <g stroke="#334155" stroke-width="2.5" fill="none">
+      <!-- tronco desde Gerencia General -->
+      <line x1="550" y1="92" x2="550" y2="330"/>
+      <!-- staff: Asistente de Gerencia -->
+      <line x1="550" y1="182" x2="400" y2="182"/>
+      <!-- nivel 2 -->
+      <line x1="245" y1="330" x2="855" y2="330"/>
+      <line x1="245" y1="330" x2="245" y2="360"/>
+      <line x1="855" y1="330" x2="855" y2="360"/>
+      <!-- nivel 3 -->
+      <line x1="245" y1="446" x2="245" y2="500"/>
+      <line x1="855" y1="446" x2="855" y2="500"/>
+    </g>
+    <!-- asesoría externa (línea discontinua) -->
+    <line x1="550" y1="182" x2="700" y2="182" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="8 6"/>
+  </svg>
+
+  <div class="caja n1" style="left:435px; top:0;"><b>Gerencia General</b>Dirección general<br><span class="etiqueta">Nivel directivo</span></div>
+
+  <div class="caja staff" style="left:170px; top:140px;"><b>Asistente de Gerencia</b>Agenda, comunicaciones y apoyo a la dirección<br><span class="etiqueta">Staff</span></div>
+  <div class="caja externo" style="left:700px; top:140px;"><b>Soporte de TI</b>Consultoría externa: sistema web, infraestructura y respaldo<br><span class="etiqueta">Asesoría externa</span></div>
+
+  <div class="caja n2" style="left:130px; top:360px;"><b>Administración</b>Administrador · gestión administrativa<br><span class="etiqueta">Nivel ejecutivo</span></div>
+  <div class="caja n2" style="left:740px; top:360px;"><b>Dirección Técnica</b>Químico Farmacéutico · gestión farmacéutica y dispensación<br><span class="etiqueta">Nivel ejecutivo</span></div>
+
+  <div class="caja n3" style="left:130px; top:500px;"><b>Asistente Administrativo</b>Apoyo en gestión administrativa y trámites internos<br><span class="etiqueta">Nivel operativo</span></div>
+  <div class="caja n3" style="left:740px; top:500px;"><b>Cajeros (3)</b>Atención y cobro al cliente en el punto de venta<br><span class="etiqueta">Nivel operativo</span></div>
+
+  <div class="leyenda">
+    <span><i></i>Relación de autoridad</span>
+    <span><i class="d"></i>Asesoría externa (sin autoridad lineal)</span>
+    <span><em style="background:#fff;border:2px solid #1a365d"></em>Puesto de staff</span>
+  </div>
+</div>
+<script>window.addEventListener('load', () => document.body.classList.add('listo'));</script>
+</body>
+</html>

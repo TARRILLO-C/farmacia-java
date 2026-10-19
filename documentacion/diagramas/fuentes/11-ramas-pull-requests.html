@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ramas y Pull Requests</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="mermaid">
+gitGraph
+  commit id: "9c5c77b"
+  branch feature/categorias-crud
+  checkout feature/categorias-crud
+  commit id: "a3f6cfa"
+  checkout main
+  commit id: "caf801a"
+  merge feature/categorias-crud id: "c05f4dc" tag: "PR #1"
+  branch feature/consulta-dni-ruc
+  checkout feature/consulta-dni-ruc
+  commit id: "f0dcffd"
+  commit id: "d7966b5"
+  commit id: "69199f7"
+  checkout main
+  merge feature/consulta-dni-ruc id: "d66cf59" tag: "PR #2"
+  branch ci/github-actions
+  checkout ci/github-actions
+  commit id: "aba115d"
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>

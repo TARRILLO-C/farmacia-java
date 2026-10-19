@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Arquitectura multicapa</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .lienzo { width: 1000px; display: flex; flex-direction: column; align-items: stretch; }
+  .capa { border: 2px solid var(--borde); border-radius: 10px; background: #f8fafc; padding: 0 22px 22px; }
+  .capa h2 { margin: 0 -22px 18px; padding: 12px 22px; font-size: 18px; color: #fff; background: var(--azul); border-radius: 8px 8px 0 0; }
+  .capa.front h2 { background: var(--teal); }
+  .fila { display: flex; gap: 18px; justify-content: center; }
+  .caja { flex: 1; border: 1.5px solid #475569; background: var(--gris); border-radius: 6px; padding: 12px 14px; text-align: center; font-size: 15px; line-height: 1.35; }
+  .caja b { display: block; font-size: 16px; margin-bottom: 2px; }
+  .capa.front .caja { border-color: var(--teal); background: var(--teal-claro); }
+  .pila { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .pila .caja { width: 420px; flex: none; }
+  .v { width: 2px; height: 22px; background: var(--linea); position: relative; margin: 0 auto; }
+  .v::after { content: ''; position: absolute; bottom: -1px; left: -5px; border: 6px solid transparent; border-top: 8px solid var(--linea); border-bottom: 0; }
+  .conector { display: flex; flex-direction: column; align-items: center; margin: 4px 0; }
+  .conector .v { height: 30px; }
+  .etq { font-size: 14px; font-weight: bold; color: var(--linea); background: #fff; padding: 4px 10px; border: 1px solid var(--borde); border-radius: 14px; margin: 4px 0; }
+  .ramas { display: flex; gap: 18px; width: 100%; }
+  .ramas > div { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .base { display: flex; gap: 40px; align-items: flex-start; }
+  .base > div { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .bd { width: 300px; border: 2px solid var(--teal); background: var(--teal-claro); border-radius: 50% / 18px; padding: 26px 10px 18px; text-align: center; font-size: 15px; }
+  .bd b { display: block; font-size: 16px; }
+  .externo { width: 380px; border: 2px dashed var(--borde); border-radius: 6px; padding: 14px; text-align: center; font-size: 15px; background: #fff; }
+  .externo b { display: block; font-size: 16px; }
+  .rotulo { font-size: 13px; color: #64748b; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="lienzo">
+  <section class="capa front">
+    <h2>Capa de presentación · Frontend (Next.js 16 + TypeScript)</h2>
+    <div class="fila">
+      <div class="caja"><b>Páginas UI</b>POS, Inventario, Clientes, Categorías, Reportes</div>
+      <div class="caja"><b>Componentes</b>Radix UI · Tailwind CSS · Modales y drawers</div>
+      <div class="caja"><b>Cliente HTTP Axios</b>services/api.ts</div>
+    </div>
+  </section>
+
+  <div class="conector"><div class="v"></div><span class="etq">HTTP / JSON + Bearer JWT</span><div class="v"></div></div>
+
+  <section class="capa">
+    <h2>Capa de negocio · Backend (Spring Boot 4 + Java 21)</h2>
+    <div class="pila">
+      <div class="caja"><b>Seguridad</b>Spring Security + filtro JWT</div>
+      <div class="v"></div>
+      <div class="caja"><b>Controladores</b>@RestController</div>
+      <div class="v"></div>
+      <div class="caja"><b>Servicios</b>@Service + DTOs</div>
+      <div class="v"></div>
+    </div>
+    <div class="ramas">
+      <div><div class="caja" style="width:100%"><b>Persistencia</b>Spring Data JPA (repositorios)</div></div>
+      <div><div class="caja" style="width:100%"><b>Integración externa</b>ApiPeruClient (RestClient)</div></div>
+    </div>
+  </section>
+
+  <div class="base">
+    <div>
+      <div class="conector"><div class="v"></div><span class="etq">Hibernate ORM / JDBC</span><div class="v"></div></div>
+      <div class="bd"><b>MySQL 8.4</b>farmacia_db · 18 tablas InnoDB</div>
+      <div class="rotulo">Capa de datos</div>
+    </div>
+    <div>
+      <div class="conector"><div class="v"></div><span class="etq">HTTPS / JSON</span><div class="v"></div></div>
+      <div class="externo"><b>apiperu.dev</b>Consulta RENIEC (DNI) y SUNAT (RUC)</div>
+      <div class="rotulo">Servicio externo</div>
+    </div>
+  </div>
+</div>
+<script>window.addEventListener('load', () => document.body.classList.add('listo'));</script>
+</body>
+</html>

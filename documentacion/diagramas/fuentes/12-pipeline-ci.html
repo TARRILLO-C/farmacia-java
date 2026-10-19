@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pipeline de integración continua</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="mermaid">
+flowchart TB
+  E([Push a cualquier rama o Pull Request hacia main]):::inicio --> G[GitHub Actions ejecuta el workflow CI]:::sistema
+  G --> B1
+  G --> F1
+  B1[Backend: checkout del código]:::proceso --> B2[Java 21 Temurin con caché Maven]:::proceso
+  B2 --> B3[Servicio MySQL 8.4 para pruebas]:::proceso
+  B3 --> B4[./mvnw clean verify: compila y ejecuta pruebas]:::proceso
+  F1[Frontend: checkout del código]:::proceso --> F2[Node.js 22 con caché npm]:::proceso
+  F2 --> F3[npm ci]:::proceso
+  F3 --> F4[npm run lint, informativo]:::propuesta
+  F4 --> F5[npm run build, build de producción]:::proceso
+  B4 --> R{¿Ambos jobs exitosos?}:::decision
+  F5 --> R
+  R -- Sí --> OK([Commit o PR marcado en verde]):::inicio
+  R -- No --> KO([Commit o PR marcado en rojo: se corrige antes de fusionar]):::fin
+  %%CLASES%%
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>

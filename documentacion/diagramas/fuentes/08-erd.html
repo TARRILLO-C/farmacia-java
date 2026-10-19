@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Diagrama entidad-relación</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body data-zoom="1.6">
+<div class="mermaid">
+erDiagram
+  roles ||--o{ usuarios : "asigna"
+  empleados ||--o| usuarios : "tiene cuenta"
+  clientes ||--o| fidelizacion_crm : "se afilia"
+  categorias ||--o{ productos : "clasifica"
+  laboratorios |o--o{ productos : "fabrica"
+  principios_activos |o--o{ productos : "compone"
+  presentaciones |o--o{ productos : "presenta"
+  productos ||--o{ lotes_inventario : "se almacena en"
+  proveedores ||--o{ compras : "abastece"
+  usuarios ||--o{ compras : "registra"
+  compras ||--|{ detalle_compras : "contiene"
+  productos ||--o{ detalle_compras : "se compra en"
+  clientes |o--o{ ventas : "realiza"
+  usuarios ||--o{ ventas : "registra"
+  metodos_pago ||--o{ ventas : "paga"
+  ventas ||--|{ detalle_ventas : "contiene"
+  lotes_inventario ||--o{ detalle_ventas : "se vende en"
+  ventas ||--o| recibos : "emite"
+
+  roles {
+    bigint id PK
+    varchar nombre UK
+    varchar descripcion
+  }
+  metodos_pago {
+    bigint id PK
+    varchar nombre UK
+    boolean activo
+  }
+  categorias {
+    bigint id PK
+    varchar nombre UK
+    varchar descripcion
+    boolean activo
+  }
+  laboratorios {
+    bigint id PK
+    varchar nombre UK
+    varchar pais_origen
+    boolean activo
+  }
+  principios_activos {
+    bigint id PK
+    varchar nombre UK
+    text descripcion
+  }
+  presentaciones {
+    bigint id PK
+    varchar nombre UK
+  }
+  proveedores {
+    bigint id PK
+    varchar ruc UK
+    varchar razon_social
+    varchar contacto
+    varchar telefono
+    varchar email
+    boolean activo
+  }
+  empleados {
+    bigint id PK
+    varchar dni UK
+    varchar nombres
+    varchar apellidos
+    varchar telefono
+    boolean activo
+  }
+  usuarios {
+    bigint id PK
+    bigint empleado_id FK
+    varchar username UK
+    varchar email UK
+    varchar password_hash
+    bigint rol_id FK
+    boolean activo
+  }
+  clientes {
+    bigint id PK
+    varchar tipo_documento
+    varchar numero_documento UK
+    varchar nombre_completo
+    varchar direccion
+    varchar telefono
+    varchar email
+    boolean activo
+  }
+  fidelizacion_crm {
+    bigint id PK
+    bigint cliente_id FK
+    varchar estado_membresia
+    varchar codigo_afiliado UK
+    decimal porcentaje_descuento
+    int puntos_acumulados
+    date fecha_afiliacion
+  }
+  productos {
+    bigint id PK
+    varchar codigo UK
+    varchar nombre
+    text descripcion
+    decimal precio_base_venta
+    boolean requiere_receta
+    boolean activo
+    bigint categoria_id FK
+    bigint laboratorio_id FK
+    bigint principio_activo_id FK
+    bigint presentacion_id FK
+  }
+  lotes_inventario {
+    bigint id PK
+    bigint producto_id FK
+    varchar codigo_lote
+    date fecha_vencimiento
+    int stock_actual
+    int stock_minimo
+    decimal precio_compra
+    boolean activo
+  }
+  compras {
+    bigint id PK
+    bigint proveedor_id FK
+    bigint usuario_id FK
+    varchar numero_factura
+    datetime fecha_compra
+    decimal total
+    varchar estado
+  }
+  detalle_compras {
+    bigint id PK
+    bigint compra_id FK
+    bigint producto_id FK
+    varchar lote_asignado
+    date fecha_vencimiento
+    int cantidad
+    decimal precio_unitario
+    decimal subtotal
+  }
+  ventas {
+    bigint id PK
+    varchar numero_venta UK
+    datetime fecha
+    bigint cliente_id FK
+    bigint usuario_id FK
+    decimal subtotal
+    decimal descuento_total
+    decimal impuesto
+    decimal total
+    bigint metodo_pago_id FK
+    varchar estado
+    varchar observaciones
+  }
+  detalle_ventas {
+    bigint id PK
+    bigint venta_id FK
+    bigint lote_id FK
+    int cantidad
+    decimal precio_unitario
+    decimal descuento
+    decimal subtotal
+  }
+  recibos {
+    bigint id PK
+    varchar numero_recibo UK
+    varchar serie
+    varchar correlativo
+    varchar tipo_comprobante
+    datetime fecha_emision
+    decimal monto_subtotal
+    decimal monto_impuesto
+    decimal monto_descuento
+    decimal monto_total
+    varchar metodo_pago
+    bigint venta_id FK
+    varchar cliente_nombre
+    varchar cliente_documento
+    varchar cliente_direccion
+  }
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>
