@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Secuencia de venta en el POS</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body data-zoom="1.5">
+<div class="mermaid">
+sequenceDiagram
+  actor CL as Cliente
+  actor CA as Cajero / Farmacéutico
+  participant FE as Frontend POS (Next.js)
+  participant BE as Backend API (Spring Boot)
+  participant DB as Base de datos (MySQL)
+  participant EX as apiperu.dev (RENIEC / SUNAT)
+
+  CL->>CA: Solicita medicamentos (con receta si aplica)
+  FE->>BE: GET /api/v1/productos (catálogo con stock)
+  BE-->>FE: Productos y stock disponible
+  CA->>FE: Elige comprobante (Boleta / Factura / Ticket) e ingresa DNI o RUC
+  FE->>BE: GET /api/v1/consultas/dni/{dni} o /ruc/{ruc}
+  BE->>DB: Busca cliente por número de documento
+  alt Cliente registrado
+    DB-->>BE: Datos del cliente y fidelización
+  else Cliente no registrado
+    BE->>EX: Consulta RENIEC (DNI) o SUNAT (RUC)
+    EX-->>BE: Nombre o razón social, dirección y estado
+  end
+  BE-->>FE: Datos del documento y descuento ClienteAmigo
+  loop Por cada producto
+    CA->>FE: Escanea código de barras o busca por nombre
+    FE->>FE: Valida stock y recalcula subtotal, descuento, IGV y total
+  end
+  CA->>FE: Selecciona método de pago
+  CL->>CA: Realiza el pago
+  CA->>FE: Emite el comprobante
+  FE->>BE: POST /api/v1/ventas (ítems, tipo de comprobante, documento)
+  rect rgb(230, 244, 244)
+    Note over BE,DB: Transacción atómica (@Transactional)
+    BE->>BE: Valida comprobante: Boleta exige DNI y Factura exige RUC
+    BE->>DB: Registra al cliente si es nuevo
+    BE->>DB: Descuenta stock por lotes (FEFO)
+    BE->>DB: Inserta venta y detalle de venta
+    BE->>DB: Inserta recibo (serie B001 / F001 / T001 y correlativo)
+    BE->>DB: Acumula puntos ClienteAmigo
+  end
+  BE-->>FE: Venta registrada y datos del comprobante
+  FE-->>CA: Muestra el comprobante y la opción de impresión
+  CA->>CL: Entrega medicamentos y comprobante de pago
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Lean Canvas FarmaciaLink</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .canvas { width: 1240px; display: grid; gap: 10px; grid-template-columns: repeat(10, 1fr); grid-auto-rows: minmax(150px, auto); }
+  .b { border: 1.5px solid var(--borde); border-radius: 8px; background: #f8fafc; padding: 0 14px 12px; font-size: 13.5px; line-height: 1.4; }
+  .b h3 { margin: 0 -14px 10px; padding: 9px 14px; font-size: 15px; color: #fff; background: var(--azul); border-radius: 6px 6px 0 0; }
+  .b h4 { margin: 14px 0 6px; font-size: 14px; color: var(--azul); border-top: 1px solid #cbd5e1; padding-top: 10px; }
+  .b.valor { background: var(--teal-claro); border-color: var(--teal); }
+  .b.valor h3 { background: var(--teal); }
+  .b ul { margin: 0; padding-left: 18px; }
+  .b li { margin-bottom: 4px; }
+  .cita { font-style: italic; text-align: center; }
+  .problema { grid-column: 1 / 3; grid-row: 1 / 3; }
+  .solucion { grid-column: 3 / 5; grid-row: 1; }
+  .metricas { grid-column: 3 / 5; grid-row: 2; }
+  .valor { grid-column: 5 / 7; grid-row: 1 / 3; }
+  .ventaja { grid-column: 7 / 9; grid-row: 1; }
+  .canales { grid-column: 7 / 9; grid-row: 2; }
+  .segmentos { grid-column: 9 / 11; grid-row: 1 / 3; }
+  .costes { grid-column: 1 / 6; grid-row: 3; }
+  .ingresos { grid-column: 6 / 11; grid-row: 3; }
+  .titulo { width: 1240px; text-align: center; font-size: 28px; font-weight: bold; color: var(--azul); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="titulo">FarmaciaLink · Lean Canvas</div>
+<div class="canvas">
+  <div class="b problema"><h3>Problema</h3><ul>
+    <li>Pérdidas económicas por falta de control en el stock de medicamentos y errores en el registro manual de ventas.</li>
+    <li>Pérdida de productos por ausencia de seguimiento preventivo en las fechas de vencimiento de los fármacos.</li></ul>
+    <h4>Alternativas</h4><ul>
+    <li>Uso de libretas físicas o cuadernos de registro manual en el mostrador.</li>
+    <li>Hojas de cálculo (Excel) desactualizadas y aisladas.</li></ul></div>
+  <div class="b solucion"><h3>Solución</h3><ul>
+    <li>Plataforma web integral que vincula el catálogo de productos con la dispensación rápida en el Punto de Venta (POS).</li>
+    <li>Control de stock automatizado con alertas de inventario mínimo y registro de lotes farmacéuticos.</li>
+    <li>Gestión del programa de fidelización “Cliente Amigo” con descuentos automáticos por DNI.</li></ul></div>
+  <div class="b metricas"><h3>Métricas clave</h3><ul>
+    <li>Reducción porcentual de mermas económicas por medicamentos vencidos.</li>
+    <li>Tiempo promedio de atención y dispensación en caja por cliente.</li></ul></div>
+  <div class="b valor"><h3>Propuesta de valor</h3>
+    <p class="cita">“Transformamos la administración de tu farmacia en un sistema ágil para maximizar la seguridad en la dispensación, eliminar mermas por caducidad y erradicar los errores del papel y el Excel.”</p>
+    <h4>Concepto de alto nivel</h4>
+    <p>Una plataforma centralizada que no solo gestiona transacciones, sino que asegura la trazabilidad en tiempo real de los medicamentos en un solo ecosistema.</p></div>
+  <div class="b ventaja"><h3>Ventaja especial</h3><ul>
+    <li>Alertas inteligentes de vencimiento que se activan proactivamente antes de que caduque el producto.</li>
+    <li>Interfaz optimizada para que la búsqueda y venta en mostrador se realicen de manera inmediata.</li></ul></div>
+  <div class="b canales"><h3>Canales</h3><ul>
+    <li>Venta directa en el mostrador físico de la farmacia.</li>
+    <li>Canales digitales y delivery.</li></ul></div>
+  <div class="b segmentos"><h3>Segmentos de clientes</h3><ul>
+    <li>Propietarios de boticas independientes que gestionan un establecimiento y están cansados de llevar el control en cuadernos o Excel.</li>
+    <li>Clientes de la comunidad local que requieren productos farmacéuticos y de cuidado personal con disponibilidad asegurada.</li></ul>
+    <h4>Clientes pioneros</h4><ul>
+    <li>Boticas locales y su personal operativo que presentan desorden en el control de stock y atención al público.</li></ul></div>
+  <div class="b costes"><h3>Estructura de costes</h3><ul>
+    <li><b>Costos operativos fijos:</b> alquiler del local, servicios básicos (agua, luz, internet) y sueldos del personal.</li>
+    <li><b>Mantenimiento tecnológico:</b> gastos en hosting, servidores y actualizaciones del sistema web.</li>
+    <li><b>Adquisición de medicamentos (inventario):</b> inversión constante en stock de fármacos y productos de salud para la venta en mostrador.</li></ul></div>
+  <div class="b ingresos"><h3>Fuentes de ingresos</h3><ul>
+    <li>Ingresos por la venta directa de medicamentos y productos farmacéuticos al contado o mediante medios digitales (efectivo, tarjetas, Yape, Plin).</li></ul></div>
+</div>
+<script>window.addEventListener('load', () => document.body.classList.add('listo'));</script>
+</body>
+</html>

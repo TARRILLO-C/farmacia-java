@@ -1,0 +1,29 @@
+/* Estilo común de los diagramas HTML de FarmaciaLink (misma tipografía y paleta que tema.js). */
+:root {
+  --azul: #1a365d;
+  --teal: #319795;
+  --teal-claro: #e6f4f4;
+  --gris: #f1f5f9;
+  --borde: #94a3b8;
+  --linea: #334155;
+  --texto: #1e293b;
+  --ambar: #fef3c7;
+  --ambar-b: #d97706;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 28px;
+  background: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--texto);
+  font-size: 16px;
+  display: inline-block;
+}
+
+/* Se escala a doble resolución recién al terminar de dibujar (si no, Mermaid mide mal el texto) */
+body.listo { zoom: 2; }
+
+.mermaid { margin: 0; }

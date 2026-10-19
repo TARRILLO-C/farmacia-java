@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Diagrama de Gantt</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .gantt { display: flex; border: 1px solid #94a3b8; font-size: 13px; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #cbd5e1; height: 26px; padding: 0 7px; white-space: nowrap; }
+  thead th { background: var(--azul); color: #fff; font-weight: bold; height: 46px; }
+  td.c { text-align: center; }
+  td.id { color: #64748b; text-align: center; width: 30px; }
+  td.n2 { padding-left: 26px; }
+  tr.fase td { background: var(--teal-claro); font-weight: bold; color: var(--azul); }
+  .linea { position: relative; border-left: 2px solid #94a3b8; }
+  .cab { display: flex; height: 47px; background: var(--azul); color: #fff; }
+  .cab div { border-right: 1px solid #475569; text-align: center; font-size: 12px; padding-top: 6px; line-height: 16px; white-space: nowrap; }
+  .cab b { display: block; font-size: 12.5px; }
+  .fondo { position: absolute; left: 0; top: 47px; bottom: 0; right: 0; }
+  .col { position: absolute; top: 0; bottom: 0; border-right: 1px solid #e2e8f0; }
+  .fila { position: absolute; left: 0; right: 0; border-bottom: 1px solid #f1f5f9; }
+  .fila.fase { background: #f4fafa; }
+  .barra { position: absolute; height: 12px; border-radius: 3px; background: var(--teal); }
+  .barra.fase { height: 9px; background: var(--azul); border-radius: 0; }
+  .barra.fase::before, .barra.fase::after { content: ''; position: absolute; bottom: -5px; border: 5px solid transparent; border-top-color: var(--azul); }
+  .barra.fase::before { left: -5px; }
+  .barra.fase::after { right: -5px; }
+  svg.flechas { position: absolute; left: 0; top: 47px; overflow: visible; }
+  .leyenda { display: flex; gap: 22px; margin-top: 10px; font-size: 13px; color: #475569; align-items: center; }
+  .leyenda i { display: inline-block; width: 28px; height: 11px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="gantt">
+  <table>
+    <thead><tr><th>Id</th><th style="text-align:left">Nombre de tarea</th><th>Duración</th><th>Comienzo</th><th>Fin</th><th>Predecesoras</th></tr></thead>
+    <tbody id="t"></tbody>
+  </table>
+  <div class="linea" id="l"></div>
+</div>
+<div class="leyenda">
+  <span><i style="background:var(--azul);height:8px;border-radius:0"></i>Fase (resumen)</span>
+  <span><i style="background:var(--teal)"></i>Tarea</span>
+  <span>→ Dependencia fin-comienzo</span>
+</div>
+<script>
+  // [nombre, esFase, inicio (día desde el 17/08/2026), duración en semanas, predecesoras]
+  const filas = [
+    ['1. Gestión y planificación', true, 0, 2, ''],
+    ['1.1 Análisis de requerimientos', false, 0, 1, ''],
+    ['1.2 Documentación técnica', false, 7, 1, '2'],
+    ['1.3 Configuración del entorno', false, 7, 1, '2'],
+    ['1.4 Arquitectura y flujos', false, 7, 1, '2'],
+    ['2. Diseño del sistema', true, 14, 2, '1'],
+    ['2.1 Interfaz UI/UX (POS)', false, 14, 2, '5'],
+    ['2.2 Modelado de datos (MySQL)', false, 14, 1, '5'],
+    ['2.3 Diseño de API REST', false, 21, 1, '8'],
+    ['3. Desarrollo backend', true, 28, 4, '6'],
+    ['3.1 Módulo de seguridad', false, 28, 1, '9'],
+    ['3.2 Persistencia (JPA / MySQL)', false, 35, 1, '11'],
+    ['3.3 Módulo de inventario', false, 42, 1, '12'],
+    ['3.4 Módulo de ventas (POS)', false, 49, 1, '13'],
+    ['3.5 Módulo de facturación', false, 49, 1, '13'],
+    ['4. Desarrollo frontend', true, 28, 4, '6'],
+    ['4.1 Estructura base (Next.js)', false, 28, 1, '9'],
+    ['4.2 Interfaz de inventario', false, 35, 1, '17'],
+    ['4.3 Interfaz de ventas (POS)', false, 42, 1, '18'],
+    ['4.4 Panel de administración', false, 49, 1, '19'],
+    ['5. Integración y pruebas', true, 56, 2, '10,16'],
+    ['5.1 Integración frontend-backend', false, 56, 1, '15,20'],
+    ['5.2 Pruebas funcionales y QA', false, 63, 1, '22'],
+    ['5.3 Corrección de errores', false, 63, 1, '22'],
+    ['6. Documentación y entrega', true, 56, 2, '10,16'],
+    ['6.1 Manual técnico', false, 56, 1, '15,20'],
+    ['6.2 Validación final y despliegue', false, 63, 1, '22'],
+  ];
+  const SEMANAS = 10, DIA = 12;
+  const base = new Date(2026, 7, 17);
+  const fecha = (d) => { const f = new Date(base); f.setDate(f.getDate() + d); return f; };
+  const dd = (f) => String(f.getDate()).padStart(2, '0') + '/' + String(f.getMonth() + 1).padStart(2, '0') + '/' + f.getFullYear();
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const rango = (a, b) => a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${meses[b.getMonth()]}` : `${a.getDate()} ${meses[a.getMonth()]}–${b.getDate()} ${meses[b.getMonth()]}`;
+
+  document.getElementById('t').innerHTML = filas.map(([n, fase, ini, sem, pred], i) =>
+    `<tr class="${fase ? 'fase' : ''}"><td class="id">${i + 1}</td><td class="${fase ? '' : 'n2'}">${n}</td>` +
+    `<td class="c">${sem} sem</td><td class="c">${dd(fecha(ini))}</td><td class="c">${dd(fecha(ini + sem * 7 - 1))}</td><td class="c">${pred || '–'}</td></tr>`
+  ).join('');
+
+  // Alturas reales de las filas de la tabla, para alinear la línea de tiempo con ellas
+  const trs = [...document.querySelectorAll('#t tr')];
+  const top0 = document.querySelector('thead tr').getBoundingClientRect().bottom;
+  const Y = trs.map((tr) => tr.getBoundingClientRect().top - top0);
+  const H = trs.map((tr) => tr.getBoundingClientRect().height);
+  const cabAlto = document.querySelector('thead tr').getBoundingClientRect().height;
+  const l = document.getElementById('l');
+  const ancho = SEMANAS * 7 * DIA;
+  l.style.width = ancho + 'px';
+  let html = `<div class="cab" style="height:${cabAlto}px">`;
+  for (let s = 0; s < SEMANAS; s++) {
+    html += `<div style="width:${7 * DIA}px"><b>Semana ${s + 1}</b>${rango(fecha(s * 7), fecha(s * 7 + 6))}</div>`;
+  }
+  html += `</div><div class="fondo" style="top:${cabAlto}px">`;
+  filas.forEach(([, fase], i) => { html += `<div class="fila ${fase ? 'fase' : ''}" style="top:${Y[i]}px;height:${H[i]}px"></div>`; });
+  for (let s = 1; s <= SEMANAS; s++) html += `<div class="col" style="left:${s * 7 * DIA - 1}px"></div>`;
+  filas.forEach(([, fase, ini, sem], i) => {
+    const alto = fase ? 9 : 12;
+    html += `<div class="barra ${fase ? 'fase' : ''}" style="left:${ini * DIA + 1}px;width:${sem * 7 * DIA - 2}px;top:${Y[i] + (H[i] - alto) / 2}px"></div>`;
+  });
+  html += '</div>';
+
+  // Flechas fin-comienzo entre tareas (no entre fases, como en la vista de Gantt de MS Project)
+  let svg = `<svg class="flechas" style="top:${cabAlto}px" width="${ancho}" height="${Y.at(-1) + H.at(-1)}"><defs><marker id="p" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L6,3.5 L0,7 z" fill="#334155"/></marker></defs>`;
+  filas.forEach(([, fase, ini, , pred], i) => {
+    if (fase || !pred) return;
+    pred.split(',').forEach((p) => {
+      const j = Number(p) - 1;
+      const [, , iniP, semP] = filas[j];
+      const xe = (iniP + semP * 7) * DIA - 1;
+      const yp = Y[j] + H[j] / 2;
+      const x = Math.max(xe + 6, ini * DIA + 6);
+      const yt = Y[i] + (H[i] - 12) / 2;
+      svg += `<path d="M${xe},${yp} H${x} V${yt}" fill="none" stroke="#334155" stroke-width="1.2" marker-end="url(#p)"/>`;
+    });
+  });
+  l.insertAdjacentHTML('beforeend', html + svg + '</svg>');
+  window.addEventListener('load', () => document.body.classList.add('listo'));
+</script>
+</body>
+</html>

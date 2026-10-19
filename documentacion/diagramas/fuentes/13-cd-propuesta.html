@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Propuesta de entrega continua con Vercel y Render</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="mermaid">
+flowchart TB
+  A([Merge de un Pull Request en main]):::inicio --> B[GitHub Actions: CI en verde]:::sistema
+  B --> F1
+  B --> B1
+  F1[Vercel detecta el push a main]:::propuesta --> F2[Build de Next.js con NEXT_PUBLIC_API_URL]:::propuesta
+  F2 --> F3([Frontend publicado en Vercel]):::fin
+  B1[Render detecta el push a main]:::propuesta --> B2[Build de la imagen Docker del backend Spring Boot]:::propuesta
+  B2 --> B3[Variables de entorno: base de datos, JWT, CORS y token de apiperu.dev]:::propuesta
+  B3 --> B4{¿Health check correcto?}:::decision
+  B4 -- Sí --> B5([Backend publicado en Render]):::fin
+  B4 -- No --> B6[Render mantiene la versión anterior y se registra una incidencia]:::propuesta
+  B3 -.-> DB[(MySQL en proveedor externo, por definir)]:::propuesta
+  %%CLASES%%
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Diagrama de clases del dominio</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="tema.js"></script>
+</head>
+<body data-zoom="1.3">
+<div class="mermaid">
+classDiagram
+  direction TB
+  class Role {
+    -Long id
+    -String nombre
+    -String descripcion
+  }
+  class Empleado {
+    -Long id
+    -String dni
+    -String nombres
+    -String apellidos
+    -String telefono
+    -Boolean activo
+  }
+  class Usuario {
+    -Long id
+    -String username
+    -String email
+    -String passwordHash
+    -Boolean activo
+  }
+  class Cliente {
+    -Long id
+    -String tipoDocumento
+    -String numeroDocumento
+    -String nombreCompleto
+    -String direccion
+    -String telefono
+    -String email
+    -Boolean activo
+    +isEsClienteAmigo() boolean
+    +getPorcentajeDescuento() Double
+  }
+  class FidelizacionCrm {
+    -Long id
+    -String estadoMembresia
+    -String codigoAfiliado
+    -Double porcentajeDescuento
+    -Integer puntosAcumulados
+    -LocalDate fechaAfiliacion
+  }
+  class Categoria {
+    -Long id
+    -String nombre
+    -String descripcion
+    -Boolean activo
+  }
+  class Laboratorio {
+    -Long id
+    -String nombre
+    -String paisOrigen
+    -Boolean activo
+  }
+  class PrincipioActivo {
+    -Long id
+    -String nombre
+    -String descripcion
+  }
+  class Presentacion {
+    -Long id
+    -String nombre
+  }
+  class Producto {
+    -Long id
+    -String codigo
+    -String nombre
+    -String descripcion
+    -Double precioBaseVenta
+    -Boolean requiereReceta
+    -Boolean activo
+  }
+  class LoteInventario {
+    -Long id
+    -String codigoLote
+    -LocalDate fechaVencimiento
+    -Integer stockActual
+    -Integer stockMinimo
+    -Double precioCompra
+    -Boolean activo
+  }
+  class Proveedor {
+    -Long id
+    -String ruc
+    -String razonSocial
+    -String contacto
+    -String telefono
+    -String email
+    -Boolean activo
+  }
+  class Compra {
+    -Long id
+    -String numeroFactura
+    -LocalDateTime fechaCompra
+    -Double total
+    -String estado
+  }
+  class DetalleCompra {
+    -Long id
+    -String loteAsignado
+    -LocalDate fechaVencimiento
+    -Integer cantidad
+    -Double precioUnitario
+    -Double subtotal
+  }
+  class MetodoPago {
+    -Long id
+    -String nombre
+    -Boolean activo
+  }
+  class Venta {
+    -Long id
+    -String numeroVenta
+    -LocalDateTime fecha
+    -Double subtotal
+    -Double descuentoTotal
+    -Double impuesto
+    -Double total
+    -String estado
+    -String observaciones
+    +addDetalle(DetalleVenta) void
+    +getTipoComprobante() String
+  }
+  class DetalleVenta {
+    -Long id
+    -Integer cantidad
+    -Double precioUnitario
+    -Double descuento
+    -Double subtotal
+  }
+  class Recibo {
+    -Long id
+    -String numeroRecibo
+    -String serie
+    -String correlativo
+    -String tipoComprobante
+    -LocalDateTime fechaEmision
+    -Double montoSubtotal
+    -Double montoImpuesto
+    -Double montoDescuento
+    -Double montoTotal
+    -String metodoPago
+    -String clienteNombre
+    -String clienteDocumento
+    -String clienteDireccion
+  }
+
+  Usuario "0..*" --> "1" Role : rol
+  Usuario "0..1" --> "1" Empleado : empleado
+  Cliente "1" *-- "0..1" FidelizacionCrm : fidelizacion
+  Producto "0..*" --> "1" Categoria : categoria
+  Producto "0..*" --> "0..1" Laboratorio : laboratorio
+  Producto "0..*" --> "0..1" PrincipioActivo : principioActivo
+  Producto "0..*" --> "0..1" Presentacion : presentacion
+  Producto "1" o-- "0..*" LoteInventario : lotes
+  Compra "0..*" --> "1" Proveedor : proveedor
+  Compra "0..*" --> "1" Usuario : usuario
+  Compra "1" *-- "1..*" DetalleCompra : detalles
+  DetalleCompra "0..*" --> "1" Producto : producto
+  Venta "0..*" --> "0..1" Cliente : cliente
+  Venta "0..*" --> "1" Usuario : usuario
+  Venta "0..*" --> "1" MetodoPago : metodoPago
+  Venta "1" *-- "1..*" DetalleVenta : detalles
+  Venta "1" *-- "0..1" Recibo : recibo
+  DetalleVenta "0..*" --> "1" LoteInventario : lote
+</div>
+<script>window.addEventListener('load', window.iniciarMermaid);</script>
+</body>
+</html>

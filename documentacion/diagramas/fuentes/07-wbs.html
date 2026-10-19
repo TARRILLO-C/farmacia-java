@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Estructura de desglose del trabajo</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .wbs { width: 1240px; }
+  .raiz { margin: 0 auto; width: 300px; text-align: center; padding: 14px; border-radius: 8px; background: var(--azul); color: #fff; font-weight: bold; font-size: 17px; }
+  .tronco { width: 2px; height: 22px; background: var(--linea); margin: 0 auto; }
+  .ramas { display: flex; gap: 14px; position: relative; padding-top: 22px; }
+  .ramas::before { content: ''; position: absolute; top: 0; left: calc((100% - 70px) / 12); right: calc((100% - 70px) / 12); height: 2px; background: var(--linea); }
+  .rama { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+  .rama::before { content: ''; position: absolute; top: -22px; width: 2px; height: 22px; background: var(--linea); }
+  .fase { width: 100%; text-align: center; padding: 12px 6px; border-radius: 8px; background: var(--teal); color: #fff; font-weight: bold; font-size: 15px; }
+  .items { width: 88%; border-left: 2px solid var(--borde); margin-top: 0; padding: 10px 0 0 0; }
+  .item { position: relative; margin: 0 0 10px 14px; padding: 8px 8px; font-size: 13.5px; text-align: center; border: 1.5px solid var(--teal); background: var(--teal-claro); border-radius: 6px; }
+  .item::before { content: ''; position: absolute; left: -16px; top: 50%; width: 14px; height: 2px; background: var(--borde); }
+</style>
+</head>
+<body>
+<div class="wbs">
+  <div class="raiz">Sistema web de gestión farmacéutica (FarmaciaLink)</div>
+  <div class="tronco"></div>
+  <div class="ramas" id="r"></div>
+</div>
+<script>
+  const fases = [
+    ['1. Gestión y planificación', ['1.1 Análisis de requerimientos', '1.2 Documentación técnica', '1.3 Configuración del entorno', '1.4 Arquitectura y flujos']],
+    ['2. Diseño del sistema', ['2.1 Interfaz UI/UX (POS)', '2.2 Modelado de datos (MySQL)', '2.3 Diseño de API REST']],
+    ['3. Desarrollo backend', ['3.1 Módulo de seguridad', '3.2 Persistencia (JPA / MySQL)', '3.3 Módulo de inventario', '3.4 Módulo de ventas (POS)', '3.5 Módulo de facturación']],
+    ['4. Desarrollo frontend', ['4.1 Estructura base (Next.js)', '4.2 Interfaz de inventario', '4.3 Interfaz de ventas (POS)', '4.4 Panel de administración']],
+    ['5. Integración y pruebas', ['5.1 Integración frontend-backend', '5.2 Pruebas funcionales y QA', '5.3 Corrección de errores']],
+    ['6. Documentación y entrega', ['6.1 Manual técnico', '6.2 Validación final y despliegue']],
+  ];
+  document.getElementById('r').innerHTML = fases.map(([f, items]) =>
+    `<div class="rama"><div class="fase">${f}</div><div class="items">${items.map((i) => `<div class="item">${i}</div>`).join('')}</div></div>`
+  ).join('');
+  window.addEventListener('load', () => document.body.classList.add('listo'));
+</script>
+</body>
+</html>
