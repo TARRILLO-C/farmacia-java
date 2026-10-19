@@ -8,8 +8,10 @@ import com.sg.farmacia.exception.BadRequestException;
 import com.sg.farmacia.exception.ResourceNotFoundException;
 import com.sg.farmacia.model.*;
 import com.sg.farmacia.repository.*;
+import com.sg.farmacia.service.ConsultaDocumentoService;
 import com.sg.farmacia.service.FidelizacionCrmService;
 import com.sg.farmacia.service.VentaService;
+import com.sg.farmacia.util.DocumentoIdentidad;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -24,12 +26,18 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class VentaServiceImpl implements VentaService {
+
+    private static final String COMPROBANTE_BOLETA = "BOLETA";
+    private static final String COMPROBANTE_FACTURA = "FACTURA";
+    private static final String COMPROBANTE_TICKET = "TICKET";
+    private static final Set<String> TIPOS_COMPROBANTE = Set.of(COMPROBANTE_BOLETA, COMPROBANTE_FACTURA, COMPROBANTE_TICKET);
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
@@ -39,6 +47,7 @@ public class VentaServiceImpl implements VentaService {
     private final MetodoPagoRepository metodoPagoRepository;
     private final LoteInventarioRepository loteRepository;
     private final FidelizacionCrmService fidelizacionService;
+    private final ConsultaDocumentoService consultaDocumentoService;
 
     @Override
     @Transactional
@@ -51,7 +60,9 @@ public class VentaServiceImpl implements VentaService {
         }
 
         // 2. Resolver Cliente, Usuario y Método de Pago
+        String tipoComprobante = normalizarTipoComprobante(dto.getTipoComprobante());
         Cliente cliente = resolverCliente(dto);
+        validarDocumentoSegunComprobante(tipoComprobante, cliente);
         Usuario usuario = resolverUsuario(dto.getUsuarioId());
         MetodoPago metodoPago = resolverMetodoPago(dto.getMetodoPagoId(), dto.getMetodoPago());
 
@@ -182,11 +193,11 @@ public class VentaServiceImpl implements VentaService {
 
         // 8. Generar Recibo Fiscal
         long nextReciboId = (reciboRepository.findMaxId() != null ? reciboRepository.findMaxId() : 0L) + 1;
-        String tipoComprobante = (dto.getTipoComprobante() != null && !dto.getTipoComprobante().isBlank())
-                ? dto.getTipoComprobante().trim().toUpperCase()
-                : "BOLETA";
-
-        String serie = tipoComprobante.contains("FACTURA") ? "F001" : "B001";
+        String serie = switch (tipoComprobante) {
+            case COMPROBANTE_FACTURA -> "F001";
+            case COMPROBANTE_TICKET -> "T001";
+            default -> "B001";
+        };
         String correlativo = String.format("%08d", nextReciboId);
         String numeroRecibo = serie + "-" + correlativo;
 
@@ -279,12 +290,65 @@ public class VentaServiceImpl implements VentaService {
             return c;
         }
 
+        if (dto.getNumeroDocumento() != null && !dto.getNumeroDocumento().isBlank()) {
+            // Validar el formato antes de consultar RENIEC/SUNAT para no gastar consultas en documentos que se rechazarán
+            String tipo = normalizarTipoComprobante(dto.getTipoComprobante());
+            String numero = DocumentoIdentidad.normalizar(dto.getNumeroDocumento());
+            if (COMPROBANTE_BOLETA.equals(tipo) && !DocumentoIdentidad.esDniValido(numero)) {
+                throw new BadRequestException("La boleta solo puede emitirse a un DNI de 8 dígitos. Para un RUC emita una factura.");
+            }
+            if (COMPROBANTE_FACTURA.equals(tipo) && !DocumentoIdentidad.esRucValido(numero)) {
+                throw new BadRequestException("La factura solo puede emitirse a un RUC válido de 11 dígitos. Para un DNI emita una boleta.");
+            }
+            Cliente c = consultaDocumentoService.obtenerORegistrarCliente(dto.getNumeroDocumento());
+            if (!Boolean.TRUE.equals(c.getActivo())) {
+                throw new BadRequestException("El cliente con documento " + c.getNumeroDocumento() + " no está activo.");
+            }
+            return c;
+        }
+
         if (dto.getNumeroClienteAmigo() != null && !dto.getNumeroClienteAmigo().trim().isEmpty()) {
             return clienteRepository.findByNumeroClienteAmigo(dto.getNumeroClienteAmigo().trim())
                     .orElseThrow(() -> new ResourceNotFoundException("No se encontró cliente con código de afiliado: " + dto.getNumeroClienteAmigo()));
         }
 
         return null;
+    }
+
+    private String normalizarTipoComprobante(String tipo) {
+        String t = (tipo == null || tipo.isBlank()) ? COMPROBANTE_BOLETA : tipo.trim().toUpperCase();
+        if (!TIPOS_COMPROBANTE.contains(t)) {
+            throw new BadRequestException("Tipo de comprobante no válido: " + tipo + ". Use BOLETA, FACTURA o TICKET.");
+        }
+        return t;
+    }
+
+    /**
+     * Boleta exige DNI y factura exige RUC; el ticket puede emitirse sin cliente.
+     */
+    private void validarDocumentoSegunComprobante(String tipoComprobante, Cliente cliente) {
+        String documento = cliente != null ? cliente.getNumeroDocumento() : null;
+        switch (tipoComprobante) {
+            case COMPROBANTE_BOLETA -> {
+                if (cliente == null) {
+                    throw new BadRequestException("La boleta requiere el DNI del cliente.");
+                }
+                if (!DocumentoIdentidad.esDniValido(documento)) {
+                    throw new BadRequestException("La boleta solo puede emitirse a un DNI de 8 dígitos. Para un RUC emita una factura.");
+                }
+            }
+            case COMPROBANTE_FACTURA -> {
+                if (cliente == null) {
+                    throw new BadRequestException("La factura requiere el RUC del cliente.");
+                }
+                if (!DocumentoIdentidad.esRucValido(documento)) {
+                    throw new BadRequestException("La factura solo puede emitirse a un RUC válido de 11 dígitos. Para un DNI emita una boleta.");
+                }
+            }
+            default -> {
+                // TICKET: documento opcional
+            }
+        }
     }
 
     private Usuario resolverUsuario(Long usuarioId) {

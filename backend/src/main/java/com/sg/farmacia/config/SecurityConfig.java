@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/recibos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers("/api/v1/clientes/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers("/api/v1/fidelizacion/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/consultas/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
 
                         // 4. Catálogos y Lotes: Lectura permitida para CAJERO, FARMACEUTICO y ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")

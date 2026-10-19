@@ -52,6 +52,9 @@ class VentaServiceTest {
     @Mock
     private FidelizacionCrmService fidelizacionService;
 
+    @Mock
+    private ConsultaDocumentoService consultaDocumentoService;
+
     @InjectMocks
     private VentaServiceImpl ventaService;
 
@@ -128,9 +131,10 @@ class VentaServiceTest {
     }
 
     @Test
-    @DisplayName("Debe procesar una venta exitosa para público general, descontar stock FEFO y generar recibo automático")
+    @DisplayName("Debe procesar un ticket para público general, descontar stock FEFO y generar recibo automático")
     void procesarVenta_Exito_PublicoGeneral() {
         VentaRequestDTO request = VentaRequestDTO.builder()
+                .tipoComprobante("TICKET")
                 .requiereReceta(false)
                 .items(List.of(
                         DetalleItemDTO.builder().productoId(1L).cantidad(2).build()
@@ -164,7 +168,7 @@ class VentaServiceTest {
         assertEquals(23.6, response.getTotal()); // 20 + 3.6
         assertEquals(18, loteParacetamol.getStockActual()); // 20 - 2
         assertNotNull(response.getCodigoComprobante());
-        assertTrue(response.getCodigoComprobante().startsWith("B001-"));
+        assertTrue(response.getCodigoComprobante().startsWith("T001-"));
         assertEquals(1L, response.getReciboId());
 
         verify(loteRepository, times(1)).save(loteParacetamol);
@@ -222,6 +226,7 @@ class VentaServiceTest {
     @DisplayName("Debe lanzar BadRequestException si el stock en lotes es insuficiente")
     void procesarVenta_Falla_StockInsuficiente() {
         VentaRequestDTO request = VentaRequestDTO.builder()
+                .tipoComprobante("TICKET")
                 .requiereReceta(false)
                 .items(List.of(
                         DetalleItemDTO.builder().productoId(1L).cantidad(50).build()
@@ -245,6 +250,7 @@ class VentaServiceTest {
     @DisplayName("Debe exigir clienteId cuando la venta requiere receta médica")
     void procesarVenta_Falla_RequiereReceta_SinCliente() {
         VentaRequestDTO request = VentaRequestDTO.builder()
+                .tipoComprobante("TICKET")
                 .requiereReceta(true)
                 .clienteId(null)
                 .items(List.of(
@@ -263,6 +269,99 @@ class VentaServiceTest {
         assertTrue(exception.getMessage().contains("receta médica"));
         verify(ventaRepository, never()).save(any(Venta.class));
         verify(reciboRepository, never()).save(any(Recibo.class));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar una boleta sin DNI del cliente")
+    void procesarVenta_Falla_BoletaSinCliente() {
+        VentaRequestDTO request = VentaRequestDTO.builder()
+                .tipoComprobante("BOLETA")
+                .items(List.of(DetalleItemDTO.builder().productoId(1L).cantidad(1).build()))
+                .build();
+
+        BadRequestException exception = assertThrows(BadRequestException.class, () ->
+                ventaService.procesarVenta(request)
+        );
+
+        assertTrue(exception.getMessage().contains("boleta requiere el DNI"));
+        verify(loteRepository, never()).save(any(LoteInventario.class));
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar una factura emitida a un cliente con DNI")
+    void procesarVenta_Falla_FacturaConDni() {
+        VentaRequestDTO request = VentaRequestDTO.builder()
+                .clienteId(5L)
+                .tipoComprobante("FACTURA")
+                .items(List.of(DetalleItemDTO.builder().productoId(1L).cantidad(1).build()))
+                .build();
+
+        when(clienteRepository.findById(5L)).thenReturn(Optional.of(clienteAmigo));
+
+        BadRequestException exception = assertThrows(BadRequestException.class, () ->
+                ventaService.procesarVenta(request)
+        );
+
+        assertTrue(exception.getMessage().contains("factura solo puede emitirse a un RUC"));
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar una boleta emitida a un RUC")
+    void procesarVenta_Falla_BoletaConRuc() {
+        VentaRequestDTO request = VentaRequestDTO.builder()
+                .numeroDocumento("20608386387")
+                .tipoComprobante("BOLETA")
+                .items(List.of(DetalleItemDTO.builder().productoId(1L).cantidad(1).build()))
+                .build();
+
+        BadRequestException exception = assertThrows(BadRequestException.class, () ->
+                ventaService.procesarVenta(request)
+        );
+
+        assertTrue(exception.getMessage().contains("boleta solo puede emitirse a un DNI"));
+        verifyNoInteractions(consultaDocumentoService); // no se gasta consulta a SUNAT
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("Debe emitir factura F001 a un RUC resuelto por documento con datos de SUNAT")
+    void procesarVenta_Exito_FacturaConRuc() {
+        Cliente empresa = Cliente.builder()
+                .id(8L).tipoDocumento("RUC").numeroDocumento("20608386387")
+                .nombreCompleto("CORPORACION GRUPO DRAGO S.A.C. - DRAGO S.A.C.")
+                .direccion("CAL. MANUEL MATTOS NRO. 427 URB. SAN AMADEO DE GARAGAY, LIMA - LIMA - SAN MARTIN DE PORRES")
+                .activo(true).build();
+
+        VentaRequestDTO request = VentaRequestDTO.builder()
+                .numeroDocumento("20608386387")
+                .tipoComprobante("factura")
+                .items(List.of(DetalleItemDTO.builder().productoId(1L).cantidad(1).build()))
+                .build();
+
+        when(consultaDocumentoService.obtenerORegistrarCliente("20608386387")).thenReturn(empresa);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(productoParacetamol));
+        when(loteRepository.findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(1L))
+                .thenReturn(new ArrayList<>(List.of(loteParacetamol)));
+        when(ventaRepository.save(any(Venta.class))).thenAnswer(invocation -> {
+            Venta v = invocation.getArgument(0);
+            v.setId(102L);
+            return v;
+        });
+        when(reciboRepository.findMaxId()).thenReturn(9L);
+        when(reciboRepository.save(any(Recibo.class))).thenAnswer(invocation -> {
+            Recibo r = invocation.getArgument(0);
+            r.setId(10L);
+            return r;
+        });
+
+        VentaResponseDTO response = ventaService.procesarVenta(request);
+
+        assertEquals("F001-00000010", response.getCodigoComprobante());
+        assertEquals("FACTURA", response.getTipoComprobante());
+        assertEquals("20608386387", response.getClienteDocumento());
+        assertEquals(8L, response.getClienteId());
     }
 
     @Test

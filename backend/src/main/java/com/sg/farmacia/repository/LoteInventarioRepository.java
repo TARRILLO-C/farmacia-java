@@ -13,13 +13,20 @@ import java.util.Optional;
 @Repository
 public interface LoteInventarioRepository extends JpaRepository<LoteInventario, Long> {
 
-    List<LoteInventario> findByProductoId(Long productoId);
+    // Consultas explícitas: LoteInventario expone getProductoId() (JSON), y Spring Data lo toma como
+    // atributo "productoId" en vez de navegar a producto.id, generando JPQL inválido.
 
-    List<LoteInventario> findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(Long productoId);
+    @Query("SELECT l FROM LoteInventario l WHERE l.producto.id = :productoId")
+    List<LoteInventario> findByProductoId(@Param("productoId") Long productoId);
 
-    Optional<LoteInventario> findByProductoIdAndCodigoLote(Long productoId, String codigoLote);
+    @Query("SELECT l FROM LoteInventario l WHERE l.producto.id = :productoId AND l.activo = true ORDER BY l.fechaVencimiento ASC")
+    List<LoteInventario> findByProductoIdAndActivoTrueOrderByFechaVencimientoAsc(@Param("productoId") Long productoId);
 
-    boolean existsByProductoIdAndCodigoLote(Long productoId, String codigoLote);
+    @Query("SELECT l FROM LoteInventario l WHERE l.producto.id = :productoId AND l.codigoLote = :codigoLote")
+    Optional<LoteInventario> findByProductoIdAndCodigoLote(@Param("productoId") Long productoId, @Param("codigoLote") String codigoLote);
+
+    @Query("SELECT COUNT(l) > 0 FROM LoteInventario l WHERE l.producto.id = :productoId AND l.codigoLote = :codigoLote")
+    boolean existsByProductoIdAndCodigoLote(@Param("productoId") Long productoId, @Param("codigoLote") String codigoLote);
 
     @Query("SELECT l FROM LoteInventario l JOIN FETCH l.producto WHERE l.activo = true AND l.stockActual <= l.stockMinimo ORDER BY l.stockActual ASC")
     List<LoteInventario> findLotesBajoStock();

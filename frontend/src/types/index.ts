@@ -321,6 +321,31 @@ export interface CreateClienteDTO {
 
 export type UpdateClienteDTO = Partial<CreateClienteDTO>;
 
+/**
+ * Resultado de GET /consultas/dni/{dni} y /consultas/ruc/{ruc}.
+ * fuente LOCAL = ya es cliente; RENIEC/SUNAT = se registrará al emitir la venta.
+ */
+export interface DocumentoConsulta {
+  tipoDocumento: 'DNI' | 'RUC';
+  numeroDocumento: string;
+  nombreCompleto: string;
+  nombres?: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string;
+  direccion?: string;
+  estado?: string;
+  condicion?: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
+  fuente: 'LOCAL' | 'RENIEC' | 'SUNAT';
+  registrado: boolean;
+  clienteId?: number;
+  esClienteAmigo: boolean;
+  codigoClienteAmigo?: string;
+  porcentajeDescuento?: number;
+}
+
 // ============================================================================
 // 7. COMPRAS A PROVEEDORES
 // ============================================================================
@@ -493,6 +518,7 @@ export interface Venta {
 
 export interface CreateVentaDTO {
   clienteId?: number;
+  numeroDocumento?: string;
   numeroClienteAmigo?: string;
   usuarioId?: number;
   metodoPagoId?: number;

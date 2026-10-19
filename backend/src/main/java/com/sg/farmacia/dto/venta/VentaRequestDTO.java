@@ -1,5 +1,6 @@
 package com.sg.farmacia.dto.venta;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -17,6 +18,10 @@ import java.util.List;
 public class VentaRequestDTO {
 
     private Long clienteId;
+
+    // DNI (boleta) o RUC (factura); si el cliente no existe se registra con datos de RENIEC/SUNAT
+    @JsonAlias({"documentoCliente", "dniRuc"})
+    private String numeroDocumento;
 
     private Long usuarioId;
 
