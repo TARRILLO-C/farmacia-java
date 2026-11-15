@@ -326,8 +326,13 @@ export default function NuevaVentaPage() {
         tipoComprobante: backendComprobante,
         metodoPago: backendMetodo,
         detalles,
+        items: detalles,
         usuarioId: 1,
-        observaciones: `Cliente: ${nombreCliente.trim() || 'Público General'}`,
+        observaciones: `Cliente: ${nombreCliente.trim() || 'Público General'}${
+          esCredito
+            ? ` | Crédito: ${numCuotas} cuota(s) (${intervaloPago}) - Pago Inicial S/ ${pagoInicial}`
+            : ''
+        }`,
       };
 
       try {
