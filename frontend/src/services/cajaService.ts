@@ -274,3 +274,4 @@ export const getCajaById = async (id: number): Promise<Caja> => {
     throw new Error('Caja no encontrada');
   }
 };
+

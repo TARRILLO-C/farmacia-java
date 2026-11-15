@@ -24,3 +24,4 @@ public class MovimientoCajaResponseDTO {
     private String usuarioNombre;
     private Long referenciaId;
 }
+

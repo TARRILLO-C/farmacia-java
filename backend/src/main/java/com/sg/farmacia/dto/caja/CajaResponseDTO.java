@@ -36,3 +36,4 @@ public class CajaResponseDTO {
     private String observacionesCierre;
     private List<MovimientoCajaResponseDTO> movimientos;
 }
+

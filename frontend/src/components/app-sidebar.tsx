@@ -206,6 +206,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </span>
               </Link>
               <Link
+                href="/dashboard/caja"
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  pathname.startsWith('/dashboard/caja')
+                    ? 'bg-white shadow-sm text-slate-900 font-semibold border border-slate-100'
+                    : 'bg-white/60 hover:bg-white text-slate-600 hover:text-slate-900 shadow-2xs hover:shadow-xs border border-transparent hover:border-slate-100'
+                }`}
+              >
+                <div
+                  className={`size-6 rounded-lg flex items-center justify-center shrink-0 ${
+                    pathname.startsWith('/dashboard/caja')
+                      ? 'bg-gradient-to-tr from-[#d946ef] to-[#ec4899] text-white shadow-xs'
+                      : 'bg-slate-100/90 text-slate-500'
+                  }`}
+                >
+                  <Wallet className="size-3.5" />
+                </div>
+                <span className="text-xs font-medium group-data-[collapsible=icon]:hidden">
+                  Caja
+                </span>
+              </Link>
+              <Link
                 href="/dashboard/ventas"
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
                   pathname.startsWith('/dashboard/ventas')

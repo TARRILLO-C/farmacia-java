@@ -66,3 +66,4 @@ public class CajaController {
         return ResponseEntity.ok(ApiResponse.success(caja, "Detalle de caja obtenido con éxito"));
     }
 }
+

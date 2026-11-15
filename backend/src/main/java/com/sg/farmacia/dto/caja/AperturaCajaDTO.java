@@ -21,3 +21,4 @@ public class AperturaCajaDTO {
 
     private String observaciones;
 }
+

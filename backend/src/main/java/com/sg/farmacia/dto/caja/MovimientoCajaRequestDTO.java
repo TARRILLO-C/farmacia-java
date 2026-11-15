@@ -31,3 +31,4 @@ public class MovimientoCajaRequestDTO {
 
     private Long referenciaId;
 }
+

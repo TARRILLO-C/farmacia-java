@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Search,
   ShoppingBag,
@@ -15,6 +16,7 @@ import {
   Receipt,
   Printer,
   ChevronDown,
+  Wallet,
 } from 'lucide-react';
 import { Producto, CreateVentaDTO, CreateDetalleVentaDTO } from '@/types';
 import { getProductos } from '@/services/productoService';
@@ -408,10 +410,17 @@ export default function NuevaVentaPage() {
       {/* ─── TARJETA PRINCIPAL REGISTRAR VENTA ─── */}
       <div className="bg-white rounded-3xl shadow-sm shadow-slate-200/50 border border-slate-100/60 overflow-hidden">
         {/* Banner Superior Magenta */}
-        <div className="bg-gradient-to-r from-[#d946ef] to-[#c026d3] px-6 md:px-8 py-4">
+        <div className="bg-gradient-to-r from-[#d946ef] to-[#c026d3] px-6 md:px-8 py-4 flex items-center justify-between">
           <h1 className="text-base md:text-lg font-bold text-white tracking-wide">
             Registrar Venta
           </h1>
+          <Link
+            href="/dashboard/caja"
+            className="px-3.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <Wallet className="size-3.5" />
+            <span>Módulo Caja</span>
+          </Link>
         </div>
 
         {/* Cuerpo del Formulario */}

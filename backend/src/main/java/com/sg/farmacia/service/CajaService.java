@@ -22,3 +22,4 @@ public interface CajaService {
 
     CajaResponseDTO obtenerPorId(Long id);
 }
+

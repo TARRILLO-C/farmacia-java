@@ -1123,3 +1123,4 @@ export default function CajaPage() {
     </div>
   );
 }
+

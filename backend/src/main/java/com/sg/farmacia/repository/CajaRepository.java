@@ -24,3 +24,4 @@ public interface CajaRepository extends JpaRepository<Caja, Long> {
            "ORDER BY c.fechaApertura DESC")
     List<Caja> buscarHistorial(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 }
+

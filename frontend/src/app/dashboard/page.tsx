@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ArrowRight,
   TrendingUp,
+  Wallet,
 } from 'lucide-react';
 import { Producto, Venta, Cliente } from '@/types';
 import { getProductos } from '@/services/productoService';
@@ -105,6 +106,31 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {/* ─── BANNER DE ACCESO DIRECTO A CAJA Y ARQUEOS ─── */}
+      <div className="bg-white rounded-3xl p-5 md:p-6 shadow-sm shadow-slate-200/50 border border-slate-100/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-2xl bg-gradient-to-tr from-[#d946ef] to-[#c026d3] flex items-center justify-center text-white shadow-md shadow-fuchsia-500/20 shrink-0">
+            <Wallet className="size-6" />
+          </div>
+          <div>
+            <h3 className="text-sm md:text-base font-bold text-slate-800 tracking-tight">
+              Módulo de Caja y Arqueo
+            </h3>
+            <p className="text-xs text-slate-500">
+              Control de apertura de turno, movimientos de caja chica, saldo en efectivo y cierre diario.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/caja"
+          className="px-5 py-2.5 bg-gradient-to-r from-[#d946ef] to-[#c026d3] hover:from-[#c026d3] hover:to-[#a21caf] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all self-start sm:self-auto flex items-center gap-1.5 shrink-0 shadow-md shadow-fuchsia-500/20 active:scale-95"
+        >
+          <span>Abrir Módulo Caja</span>
+          <ArrowRight className="size-3.5" />
+        </Link>
+      </div>
+
       {/* ─── FILA SUPERIOR: 4 TARJETAS KPI (Idénticas a la referencia) ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Tarjeta 1: Ventas De Hoy */}
