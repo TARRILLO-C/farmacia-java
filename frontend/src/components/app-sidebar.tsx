@@ -46,7 +46,7 @@ interface SidebarItemDef {
 
 const gestionItems: SidebarItemDef[] = [
   { title: 'Productos', href: '/dashboard/productos', icon: Package },
-  { title: 'Categorias', href: '/dashboard/categorias', icon: Tags },
+  { title: 'Categorías', href: '/dashboard/categorias', icon: Tags },
   { title: 'Inventario', href: '/dashboard/inventario', icon: Boxes },
   { title: 'Clientes', href: '/dashboard/clientes', icon: Users },
   { title: 'Proveedores', href: '/dashboard/proveedores', icon: Briefcase },
