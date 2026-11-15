@@ -45,6 +45,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+const formatMoney = (val: unknown): string => {
+  if (val === null || val === undefined) return '0.00';
+  const num = typeof val === 'number' ? val : parseFloat(String(val));
+  return isNaN(num) ? '0.00' : num.toFixed(2);
+};
+
 export default function CajaPage() {
   const [activeCaja, setActiveCaja] = useState<Caja | null>(null);
   const [historialCajas, setHistorialCajas] = useState<Caja[]>([]);
@@ -279,7 +285,7 @@ export default function CajaPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setMontoCierreRealInput(activeCaja.saldoEsperadoEfectivo.toFixed(2));
+                  setMontoCierreRealInput(formatMoney(activeCaja.saldoEsperadoEfectivo));
                   setIsCierreModalOpen(true);
                 }}
                 className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-rose-500/25 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5"
@@ -353,7 +359,7 @@ export default function CajaPage() {
                       Saldo en Efectivo (Caja Física)
                     </span>
                     <span className="text-2xl sm:text-3xl font-black tracking-tight mt-1 block">
-                      S/ {activeCaja.saldoEsperadoEfectivo.toFixed(2)}
+                      S/ {formatMoney(activeCaja.saldoEsperadoEfectivo)}
                     </span>
                     <span className="text-[10px] text-emerald-100/90 mt-2 block">
                       Fondo + Ventas Efectivo + Ingresos - Egresos
@@ -368,19 +374,19 @@ export default function CajaPage() {
                     Total Ventas del Turno
                   </span>
                   <span className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mt-1 block">
-                    S/ {activeCaja.totalVentasTotal.toFixed(2)}
+                    S/ {formatMoney(activeCaja.totalVentasTotal)}
                   </span>
                   <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-2">
                     <span className="flex items-center gap-1 font-semibold text-emerald-600">
-                      Efec: S/ {activeCaja.totalVentasEfectivo.toFixed(2)}
+                      Efec: S/ {formatMoney(activeCaja.totalVentasEfectivo)}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1 font-semibold text-blue-600">
-                      Tarj: S/ {activeCaja.totalVentasTarjeta.toFixed(2)}
+                      Tarj: S/ {formatMoney(activeCaja.totalVentasTarjeta)}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1 font-semibold text-fuchsia-600">
-                      Dig: S/ {activeCaja.totalVentasDigital.toFixed(2)}
+                      Dig: S/ {formatMoney(activeCaja.totalVentasDigital)}
                     </span>
                   </div>
                 </div>
@@ -391,7 +397,7 @@ export default function CajaPage() {
                     Monto Inicial (Sencillo)
                   </span>
                   <span className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mt-1 block">
-                    S/ {activeCaja.montoInicial.toFixed(2)}
+                    S/ {formatMoney(activeCaja.montoInicial)}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-2 block">
                     Base física registrada al abrir
@@ -407,13 +413,13 @@ export default function CajaPage() {
                     <div>
                       <span className="text-xs text-emerald-600 font-bold block">+ Ingresos</span>
                       <span className="text-lg font-black text-emerald-700">
-                        S/ {activeCaja.totalIngresosManuales.toFixed(2)}
+                        S/ {formatMoney(activeCaja.totalIngresosManuales)}
                       </span>
                     </div>
                     <div>
                       <span className="text-xs text-rose-600 font-bold block">- Egresos</span>
                       <span className="text-lg font-black text-rose-700">
-                        S/ {activeCaja.totalEgresosManuales.toFixed(2)}
+                        S/ {formatMoney(activeCaja.totalEgresosManuales)}
                       </span>
                     </div>
                   </div>
@@ -504,7 +510,7 @@ export default function CajaPage() {
                                   isEgreso ? 'text-rose-600' : 'text-emerald-600'
                                 }`}
                               >
-                                {isEgreso ? '-' : '+'} S/ {mov.monto.toFixed(2)}
+                                {isEgreso ? '-' : '+'} S/ {formatMoney(mov.monto)}
                               </td>
                             </tr>
                           );
@@ -629,16 +635,16 @@ export default function CajaPage() {
                         </td>
 
                         <td className="py-4 px-3 text-right text-slate-700">
-                          S/ {c.montoInicial.toFixed(2)}
+                          S/ {formatMoney(c.montoInicial)}
                         </td>
 
                         <td className="py-4 px-3 text-right font-semibold text-slate-800">
-                          S/ {c.totalVentasTotal.toFixed(2)}
+                          S/ {formatMoney(c.totalVentasTotal)}
                         </td>
 
                         <td className="py-4 px-3 text-right font-bold text-slate-800">
                           {c.montoCierre !== undefined && c.montoCierre !== null
-                            ? `S/ ${c.montoCierre.toFixed(2)}`
+                            ? `S/ ${formatMoney(c.montoCierre)}`
                             : '-'}
                         </td>
 
@@ -651,11 +657,11 @@ export default function CajaPage() {
                             </span>
                           ) : isFaltante ? (
                             <span className="bg-rose-50 text-rose-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-rose-200">
-                              Faltante S/ {Math.abs(dif).toFixed(2)}
+                              Faltante S/ {formatMoney(Math.abs(dif))}
                             </span>
                           ) : (
                             <span className="bg-blue-50 text-blue-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-blue-200">
-                              Sobrante S/ {dif.toFixed(2)}
+                              Sobrante S/ {formatMoney(dif)}
                             </span>
                           )}
                         </td>
@@ -879,31 +885,31 @@ export default function CajaPage() {
                 <div className="flex justify-between text-slate-500">
                   <span>Monto Inicial de Apertura:</span>
                   <span className="font-semibold text-slate-800">
-                    S/ {activeCaja.montoInicial.toFixed(2)}
+                    S/ {formatMoney(activeCaja.montoInicial)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500">
                   <span>Ventas en Efectivo:</span>
                   <span className="font-semibold text-emerald-600">
-                    + S/ {activeCaja.totalVentasEfectivo.toFixed(2)}
+                    + S/ {formatMoney(activeCaja.totalVentasEfectivo)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500">
                   <span>Ingresos Manuales:</span>
                   <span className="font-semibold text-blue-600">
-                    + S/ {activeCaja.totalIngresosManuales.toFixed(2)}
+                    + S/ {formatMoney(activeCaja.totalIngresosManuales)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500">
                   <span>Egresos / Gastos Manuales:</span>
                   <span className="font-semibold text-rose-600">
-                    - S/ {activeCaja.totalEgresosManuales.toFixed(2)}
+                    - S/ {formatMoney(activeCaja.totalEgresosManuales)}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-sm text-slate-900">
                   <span>Saldo Esperado en Efectivo:</span>
                   <span className="text-[#16a34a]">
-                    S/ {activeCaja.saldoEsperadoEfectivo.toFixed(2)}
+                    S/ {formatMoney(activeCaja.saldoEsperadoEfectivo)}
                   </span>
                 </div>
               </div>
@@ -945,8 +951,8 @@ export default function CajaPage() {
                   {Math.abs(diferenciaCierre) < 0.01
                     ? 'S/ 0.00 (Caja Cuadrada)'
                     : diferenciaCierre < 0
-                    ? `- S/ ${Math.abs(diferenciaCierre).toFixed(2)} (Faltante)`
-                    : `+ S/ ${diferenciaCierre.toFixed(2)} (Sobrante)`}
+                    ? `- S/ ${formatMoney(Math.abs(diferenciaCierre))} (Faltante)`
+                    : `+ S/ ${formatMoney(diferenciaCierre)} (Sobrante)`}
                 </span>
               </div>
 
@@ -1039,30 +1045,30 @@ export default function CajaPage() {
                 <div className="flex justify-between">
                   <span>Fondo Inicial:</span>
                   <span className="font-bold">
-                    S/ {selectedArqueoTicket.montoInicial.toFixed(2)}
+                    S/ {formatMoney(selectedArqueoTicket.montoInicial)}
                   </span>
                 </div>
                 <div className="flex justify-between text-emerald-600">
                   <span>Ventas Efectivo:</span>
                   <span className="font-bold">
-                    + S/ {selectedArqueoTicket.totalVentasEfectivo.toFixed(2)}
+                    + S/ {formatMoney(selectedArqueoTicket.totalVentasEfectivo)}
                   </span>
                 </div>
                 <div className="flex justify-between text-blue-600">
                   <span>Ventas Tarjeta:</span>
                   <span className="font-bold">
-                    + S/ {selectedArqueoTicket.totalVentasTarjeta.toFixed(2)}
+                    + S/ {formatMoney(selectedArqueoTicket.totalVentasTarjeta)}
                   </span>
                 </div>
                 <div className="flex justify-between text-fuchsia-600">
                   <span>Ventas Digitales:</span>
                   <span className="font-bold">
-                    + S/ {selectedArqueoTicket.totalVentasDigital.toFixed(2)}
+                    + S/ {formatMoney(selectedArqueoTicket.totalVentasDigital)}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold text-slate-800 pt-1 border-t border-slate-100">
                   <span>Total Ventas Emitidas:</span>
-                  <span>S/ {selectedArqueoTicket.totalVentasTotal.toFixed(2)}</span>
+                  <span>S/ {formatMoney(selectedArqueoTicket.totalVentasTotal)}</span>
                 </div>
               </div>
 
@@ -1070,31 +1076,27 @@ export default function CajaPage() {
                 <div className="flex justify-between">
                   <span>Saldo Esperado Efectivo:</span>
                   <span className="font-bold">
-                    S/ {selectedArqueoTicket.saldoEsperadoEfectivo.toFixed(2)}
+                    S/ {formatMoney(selectedArqueoTicket.saldoEsperadoEfectivo)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Efectivo Real Contado:</span>
                   <span className="font-black text-sm">
-                    S/{' '}
-                    {selectedArqueoTicket.montoCierre !== undefined &&
-                    selectedArqueoTicket.montoCierre !== null
-                      ? selectedArqueoTicket.montoCierre.toFixed(2)
-                      : '0.00'}
+                    S/ {formatMoney(selectedArqueoTicket.montoCierre)}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold pt-1">
                   <span>Diferencia / Descuadre:</span>
                   <span
                     className={
-                      Math.abs(selectedArqueoTicket.diferencia || 0) < 0.01
+                      Math.abs(Number(selectedArqueoTicket.diferencia) || 0) < 0.01
                         ? 'text-emerald-600'
-                        : (selectedArqueoTicket.diferencia || 0) < 0
+                        : (Number(selectedArqueoTicket.diferencia) || 0) < 0
                         ? 'text-rose-600'
                         : 'text-blue-600'
                     }
                   >
-                    S/ {(selectedArqueoTicket.diferencia || 0).toFixed(2)}
+                    S/ {formatMoney(selectedArqueoTicket.diferencia)}
                   </span>
                 </div>
               </div>
