@@ -129,7 +129,7 @@ public class DataInitializer implements CommandLineRunner {
         Role rolCajero = roleRepository.findByNombre("CAJERO").orElseThrow();
 
         // 1. Admin
-        if (!usuarioRepository.existsByUsername("admin")) {
+        Usuario admin = usuarioRepository.findByUsername("admin").orElseGet(() -> {
             Empleado empAdmin = empleadoRepository.findByDni("70000001").orElseGet(() ->
                     empleadoRepository.save(Empleado.builder()
                             .dni("70000001")
@@ -139,20 +139,49 @@ public class DataInitializer implements CommandLineRunner {
                             .activo(true)
                             .build()));
 
-            Usuario admin = Usuario.builder()
+            return Usuario.builder()
                     .username("admin")
                     .email("admin@farmacia.pe")
-                    .passwordHash(passwordEncoder.encode("admin123"))
                     .empleado(empAdmin)
                     .rol(rolAdmin)
                     .activo(true)
                     .build();
-            usuarioRepository.save(admin);
-            log.info("Usuario 'admin' creado exitosamente (pass: admin123)");
-        }
+        });
+        admin.setPasswordHash(passwordEncoder.encode("admin123"));
+        admin.setRol(rolAdmin);
+        admin.setActivo(true);
+        usuarioRepository.save(admin);
+        log.info("Usuario 'admin' sincronizado exitosamente con password 'admin123'");
+
+        // 1b. Tarrillo (Admin)
+        Usuario tarrillo = usuarioRepository.findByUsername("tarrillo")
+                .or(() -> usuarioRepository.findByEmail("tarrillo@gmail.com"))
+                .orElseGet(() -> {
+                    Empleado empTarrillo = empleadoRepository.findByDni("70000005").orElseGet(() ->
+                            empleadoRepository.save(Empleado.builder()
+                                    .dni("70000005")
+                                    .nombres("Nigson Shrimi")
+                                    .apellidos("Tarrillo Condor")
+                                    .telefono("987654325")
+                                    .activo(true)
+                                    .build()));
+
+                    return Usuario.builder()
+                            .username("tarrillo")
+                            .email("tarrillo@gmail.com")
+                            .empleado(empTarrillo)
+                            .rol(rolAdmin)
+                            .activo(true)
+                            .build();
+                });
+        tarrillo.setPasswordHash(passwordEncoder.encode("admin123"));
+        tarrillo.setRol(rolAdmin);
+        tarrillo.setActivo(true);
+        usuarioRepository.save(tarrillo);
+        log.info("Usuario 'tarrillo' sincronizado exitosamente con password 'admin123'");
 
         // 2. Farmacéutico
-        if (!usuarioRepository.existsByUsername("farmaceutico")) {
+        Usuario farma = usuarioRepository.findByUsername("farmaceutico").orElseGet(() -> {
             Empleado empFarma = empleadoRepository.findByDni("70000002").orElseGet(() ->
                     empleadoRepository.save(Empleado.builder()
                             .dni("70000002")
@@ -162,20 +191,22 @@ public class DataInitializer implements CommandLineRunner {
                             .activo(true)
                             .build()));
 
-            Usuario farma = Usuario.builder()
+            return Usuario.builder()
                     .username("farmaceutico")
                     .email("farma@farmacia.pe")
-                    .passwordHash(passwordEncoder.encode("farma123"))
                     .empleado(empFarma)
                     .rol(rolFarma)
                     .activo(true)
                     .build();
-            usuarioRepository.save(farma);
-            log.info("Usuario 'farmaceutico' creado exitosamente (pass: farma123)");
-        }
+        });
+        farma.setPasswordHash(passwordEncoder.encode("farma123"));
+        farma.setRol(rolFarma);
+        farma.setActivo(true);
+        usuarioRepository.save(farma);
+        log.info("Usuario 'farmaceutico' sincronizado exitosamente con password 'farma123'");
 
         // 3. Cajero
-        if (!usuarioRepository.existsByUsername("cajero")) {
+        Usuario cajero = usuarioRepository.findByUsername("cajero").orElseGet(() -> {
             Empleado empCajero = empleadoRepository.findByDni("70000003").orElseGet(() ->
                     empleadoRepository.save(Empleado.builder()
                             .dni("70000003")
@@ -185,17 +216,19 @@ public class DataInitializer implements CommandLineRunner {
                             .activo(true)
                             .build()));
 
-            Usuario cajero = Usuario.builder()
+            return Usuario.builder()
                     .username("cajero")
                     .email("cajero@farmacia.pe")
-                    .passwordHash(passwordEncoder.encode("cajero123"))
                     .empleado(empCajero)
                     .rol(rolCajero)
                     .activo(true)
                     .build();
-            usuarioRepository.save(cajero);
-            log.info("Usuario 'cajero' creado exitosamente (pass: cajero123)");
-        }
+        });
+        cajero.setPasswordHash(passwordEncoder.encode("cajero123"));
+        cajero.setRol(rolCajero);
+        cajero.setActivo(true);
+        usuarioRepository.save(cajero);
+        log.info("Usuario 'cajero' sincronizado exitosamente con password 'cajero123'");
     }
 
     private void inicializarProveedores() {

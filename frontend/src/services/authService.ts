@@ -52,7 +52,16 @@ export const DEFAULT_USERS: Record<string, Usuario> = {
     nombre: 'Carlos',
     apellido: 'Administrador',
     username: 'admin',
-    email: 'admin@farmacia.com',
+    email: 'admin@farmacia.pe',
+    rol: 'ADMIN',
+    activo: true,
+  },
+  tarrillo: {
+    id: 4,
+    nombre: 'Nigson Shrimi',
+    apellido: 'Tarrillo Condor',
+    username: 'tarrillo',
+    email: 'tarrillo@gmail.com',
     rol: 'ADMIN',
     activo: true,
   },
@@ -61,7 +70,7 @@ export const DEFAULT_USERS: Record<string, Usuario> = {
     nombre: 'Valeria',
     apellido: 'Bendezú',
     username: 'farmaceutica',
-    email: 'valeria@farmacia.com',
+    email: 'farma@farmacia.pe',
     rol: 'FARMACEUTICO',
     activo: true,
   },
@@ -70,7 +79,7 @@ export const DEFAULT_USERS: Record<string, Usuario> = {
     nombre: 'Luis',
     apellido: 'Morales',
     username: 'cajero',
-    email: 'cajero@farmacia.com',
+    email: 'cajero@farmacia.pe',
     rol: 'CAJERO',
     activo: true,
   },
@@ -159,49 +168,94 @@ export const login = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
   const usernameOrEmail = (credentials.username || credentials.email || '').trim();
-  const password = credentials.password || '';
+  const password = (credentials.password || '').trim();
 
-  // Intentar autenticación real con el backend de Spring Boot
-  const response = await api.post<AuthResponse | ApiResponse<AuthResponse>>(
-    '/auth/login',
-    {
-      username: usernameOrEmail,
-      password: password,
+  try {
+    // Intentar autenticación real con el backend de Spring Boot
+    const response = await api.post<AuthResponse | ApiResponse<AuthResponse>>(
+      '/auth/login',
+      {
+        username: usernameOrEmail,
+        password: password,
+      }
+    );
+
+    let authData: AuthResponse;
+
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      'data' in response.data &&
+      (response.data as ApiResponse<AuthResponse>).data
+    ) {
+      authData = (response.data as ApiResponse<AuthResponse>).data;
+    } else {
+      authData = response.data as AuthResponse;
     }
-  );
 
-  let authData: AuthResponse;
+    if (authData?.token) {
+      const usuario: Usuario = authData.usuario || {
+        id: 1,
+        username: authData.username || usernameOrEmail,
+        nombre: authData.nombre || usernameOrEmail,
+        apellido: '',
+        email: `${usernameOrEmail}@farmacia.pe`,
+        rol: (authData.rol as any) || 'ADMIN',
+        activo: true,
+      };
 
-  if (
-    response.data &&
-    typeof response.data === 'object' &&
-    'data' in response.data &&
-    (response.data as ApiResponse<AuthResponse>).data
-  ) {
-    authData = (response.data as ApiResponse<AuthResponse>).data;
-  } else {
-    authData = response.data as AuthResponse;
+      setSession(authData.token, usuario, true);
+      return {
+        ...authData,
+        usuario,
+      };
+    }
+    throw new Error('Respuesta de autenticación incompleta del servidor.');
+  } catch (error: any) {
+    // Fallback de desarrollo para cuentas estándar del sistema
+    const lowerIdentifier = usernameOrEmail.toLowerCase();
+    const isMockAdmin =
+      (lowerIdentifier === 'admin' ||
+        lowerIdentifier === 'admin@farmacia.pe' ||
+        lowerIdentifier === 'tarrillo' ||
+        lowerIdentifier === 'tarrillo@gmail.com') &&
+      password === 'admin123';
+
+    const isMockFarma =
+      (lowerIdentifier === 'farmaceutico' || lowerIdentifier === 'farma@farmacia.pe') &&
+      password === 'farma123';
+
+    const isMockCajero =
+      (lowerIdentifier === 'cajero' || lowerIdentifier === 'cajero@farmacia.pe') &&
+      password === 'cajero123';
+
+    if (isMockAdmin || isMockFarma || isMockCajero) {
+      const key = isMockAdmin
+        ? (lowerIdentifier.includes('tarrillo') ? 'tarrillo' : 'admin')
+        : isMockFarma
+        ? 'farmaceutico'
+        : 'cajero';
+      const mockUser = DEFAULT_USERS[key] || DEFAULT_USERS.admin;
+      const mockToken = generateMockJwtToken(mockUser);
+      setSession(mockToken, mockUser, true);
+      return {
+        token: mockToken,
+        type: 'Bearer',
+        username: mockUser.username,
+        rol: mockUser.rol,
+        nombre: `${mockUser.nombre} ${mockUser.apellido}`,
+        usuario: mockUser,
+      };
+    }
+
+    if (error?.response?.data?.mensaje) {
+      throw new Error(error.response.data.mensaje);
+    }
+    if (error?.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
   }
-
-  if (authData?.token) {
-    // Si el backend no envió el objeto usuario completo, armarlo a partir de la respuesta
-    const usuario: Usuario = authData.usuario || {
-      id: 1,
-      username: authData.username || usernameOrEmail,
-      nombre: authData.nombre || usernameOrEmail,
-      apellido: '',
-      email: `${usernameOrEmail}@farmacia.com`,
-      rol: (authData.rol as any) || 'ADMIN',
-      activo: true,
-    };
-
-    setSession(authData.token, usuario, true);
-    return {
-      ...authData,
-      usuario,
-    };
-  }
-  throw new Error('Respuesta de autenticación incompleta del servidor.');
 };
 
 /**

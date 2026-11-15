@@ -52,6 +52,22 @@ const MODULE_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: 'Clientes',
     subtitle: 'Padrón de beneficiarios y clientes regulares',
   },
+  '/dashboard/proveedores': {
+    title: 'Proveedores',
+    subtitle: 'Directorio de laboratorios y distribuidores farmacéuticos',
+  },
+  '/dashboard/usuarios': {
+    title: 'Usuarios',
+    subtitle: 'Control de cuentas y acceso al sistema',
+  },
+  '/dashboard/permisos': {
+    title: 'Gestión de Permisos',
+    subtitle: 'Asignación de privilegios y módulos por usuario',
+  },
+  '/dashboard/configuracion': {
+    title: 'Configuración',
+    subtitle: 'Personalización de identidad, logo y sliders de portada',
+  },
   '/dashboard/ventas': {
     title: 'Historial de Ventas',
     subtitle: 'Auditoría de transacciones y recibos emitidos',
@@ -122,14 +138,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 md:px-8 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
-      {/* Lado Izquierdo: Botón Hamburguesa Móvil + Título + Badge Dinámico (Nunca se deforma) */}
+    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-8 bg-[#f4f6fa]/95 backdrop-blur-md border-b border-slate-200/50 transition-all">
+      {/* Lado Izquierdo: Botón Hamburguesa Móvil + Título + Badge Dinámico */}
       <div className="flex items-center gap-3 md:gap-4 shrink-0">
-        <SidebarTrigger className="h-9 w-9 text-slate-700 hover:text-[#1a365d] hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer shrink-0" />
-        <Separator orientation="vertical" className="h-6 hidden sm:block bg-slate-200 shrink-0" />
+        <SidebarTrigger className="h-8.5 w-8.5 text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs rounded-xl cursor-pointer shrink-0" />
+        <Separator orientation="vertical" className="h-5 hidden sm:block bg-slate-200 shrink-0" />
 
         <div className="flex items-center gap-2.5 shrink-0 whitespace-nowrap">
-          <h1 className="text-lg md:text-xl font-bold text-[#1a365d] tracking-tight whitespace-nowrap">
+          <h1 className="text-base md:text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">
             {customTitle || activeModule.title}
           </h1>
           {badge}
@@ -148,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar fármaco, código o cliente..."
-            className="w-full pl-10 pr-9 py-2 text-sm bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl border border-transparent focus:border-[#319795] focus:ring-2 focus:ring-[#319795]/20 outline-hidden transition-all duration-200"
+            className="w-full pl-10 pr-9 py-2 text-sm bg-white hover:bg-slate-50/80 focus:bg-white text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200/80 shadow-2xs focus:border-[#d946ef] focus:ring-2 focus:ring-[#d946ef]/10 outline-hidden transition-all duration-200"
           />
           {searchQuery && (
             <button
@@ -166,13 +182,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <button
               type="button"
               onClick={() => setActionsDropdownOpen(!actionsDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-[#1a365d] border border-slate-200/80 shadow-2xs font-semibold text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs font-semibold text-xs transition-colors cursor-pointer"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#319795]" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#d946ef]" />
               <span className="hidden sm:inline">Acciones</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                  actionsDropdownOpen ? 'rotate-180 text-[#319795]' : ''
+                  actionsDropdownOpen ? 'rotate-180 text-[#d946ef]' : ''
                 }`}
               />
             </button>
@@ -205,15 +221,15 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <button
             type="button"
             aria-label="Notificaciones"
-            className="relative p-2.5 text-slate-600 hover:text-[#1a365d] hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-colors shadow-xs"
+            className="relative p-2.5 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-xl border border-slate-200/80 transition-colors shadow-2xs"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#319795] rounded-full ring-2 ring-white"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#d946ef] rounded-full ring-2 ring-white"></span>
           </button>
         </div>
 
         {/* Separador vertical */}
-        <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+        <div className="h-7 w-px bg-slate-200 hidden sm:block" />
 
         {/* Perfil de Usuario con Dropdown */}
         {currentUser ? (
@@ -221,10 +237,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <button
               type="button"
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="flex items-center gap-3 p-1.5 pr-2.5 rounded-xl hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
+              className="flex items-center gap-3 p-1.5 pr-2.5 rounded-xl hover:bg-white transition-colors border border-transparent hover:border-slate-200 shadow-2xs"
             >
               {/* Avatar */}
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1a365d] to-[#2a4365] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+              <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-[#00b0ff] to-[#0070ff] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 {currentUser.nombre ? currentUser.nombre.charAt(0).toUpperCase() : (currentUser.username ? currentUser.username.charAt(0).toUpperCase() : 'U')}
               </div>
 

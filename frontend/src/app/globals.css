@@ -68,14 +68,14 @@
   --input: #e2e8f0;
   --ring: #319795;
   --radius: 0.75rem;
-  --sidebar: #1a365d;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-primary: #319795;
+  --sidebar: #f4f6fa;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #d946ef;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.1);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #319795;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #00b0ff;
 }
 
 @layer base {

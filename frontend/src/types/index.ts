@@ -217,11 +217,12 @@ export interface Producto {
   precioCompra?: number;
   stock: number;
   stockMinimo: number;
-  requiereReceta: boolean;
+  requiereReceta?: boolean;
   activo: boolean;
-  categoriaId: number;
+  categoriaId?: number;
   categoriaNombre?: string;
   categoria?: Categoria;
+  imagenUrl?: string;
   lotes?: LoteInventario[];
   createdAt?: string;
   updatedAt?: string;

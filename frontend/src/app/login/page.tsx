@@ -2,29 +2,27 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import {
-  Activity,
-  Lock,
-  User,
   Eye,
   EyeOff,
   AlertCircle,
   Loader2,
-  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  User,
+  Lock,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { login, isAuthenticated } from '@/services/authService';
 
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -42,15 +40,16 @@ function LoginFormContent() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!username.trim() || !password) {
-      setErrorMsg('Por favor complete todos los campos.');
+    const identifier = emailOrUsername.trim();
+    if (!identifier || !password) {
+      setErrorMsg('Por favor completa todos los campos requeridos.');
       return;
     }
 
     setLoading(true);
     try {
       await login({
-        username: username.trim(),
+        username: identifier,
         password: password,
       });
 
@@ -60,133 +59,218 @@ function LoginFormContent() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Credenciales inválidas o error de conexión.';
+          : 'Credenciales inválidas o error de conexión con el servidor.';
       setErrorMsg(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const setDemo = (user: string, pass: string) => {
-    setUsername(user);
+  const handleDemoFill = (user: string, pass: string) => {
+    setEmailOrUsername(user);
     setPassword(pass);
     setErrorMsg(null);
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-50 relative overflow-hidden">
-      {/* Sutil halo decorativo en paleta institucional */}
-      <div className="absolute w-[500px] h-[500px] bg-teal-100/60 rounded-full blur-3xl pointer-events-none -top-24 -left-24" />
-      <div className="absolute w-[400px] h-[400px] bg-blue-100/50 rounded-full blur-3xl pointer-events-none -bottom-24 -right-24" />
-
-      <div className="w-full max-w-sm space-y-5 relative z-10">
-        {/* Cabecera limpia */}
-        <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center justify-center size-12 rounded-2xl bg-[#319795] text-white shadow-md shadow-[#319795]/20 mb-1">
-            <Activity className="size-6 stroke-[2.5]" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-[#1a365d]">SGF Farmacia</h1>
-          <p className="text-xs text-slate-500">Sistema de Gestión Farmacéutica</p>
+    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row relative overflow-hidden select-none">
+      {/* ─── COLUMNA IZQUIERDA: FORMULARIO DE ACCESO ─── */}
+      <div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen flex flex-col justify-between px-6 sm:px-12 md:px-16 lg:px-20 py-8 lg:py-12 z-10 bg-white">
+        {/* Marca superior opcional / badge sutil */}
+        <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+          <div className="size-2 rounded-full bg-sky-500 animate-pulse" />
+          <span>SGF • Sistema de Gestión Farmacéutica</span>
         </div>
 
-        {/* Alerta de error */}
-        {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <AlertCircle className="size-4 shrink-0 text-rose-600" />
-            <span>{errorMsg}</span>
+        {/* Contenido Central */}
+        <div className="w-full max-w-sm mx-auto my-auto py-8">
+          {/* Encabezado Principal */}
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#00b0ff] tracking-tight mb-2">
+              Bienvenido
+            </h1>
+            <p className="text-sm text-slate-500 font-normal">
+              Ingresa tu email y contraseña para continuar
+            </p>
           </div>
-        )}
 
-        {/* Tarjeta de Login - White Mode */}
-        <Card className="border-slate-200/90 bg-white shadow-xl shadow-slate-200/50 rounded-3xl">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Usuario */}
-              <div className="space-y-1.5">
-                <Label htmlFor="username" className="text-xs font-bold text-slate-700">
-                  Usuario
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="admin"
-                    autoComplete="username"
-                    disabled={loading}
-                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[#319795] h-9 text-xs rounded-xl"
-                  />
-                </div>
-              </div>
+          {/* Banner de error */}
+          {errorMsg && (
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50/90 border border-rose-200/80 text-rose-700 text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+              <AlertCircle className="size-4 shrink-0 text-rose-600" />
+              <span className="flex-1 font-medium">{errorMsg}</span>
+            </div>
+          )}
 
-              {/* Contraseña */}
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-bold text-slate-700">
-                  Contraseña
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    disabled={loading}
-                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[#319795] h-9 pr-9 text-xs rounded-xl"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Botón Ingresar */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-9.5 bg-[#319795] hover:bg-[#287e7c] text-white font-bold text-xs rounded-xl shadow-sm active:scale-[0.99] transition-all cursor-pointer mt-2"
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Campo Email / Usuario */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="emailOrUsername"
+                className="block text-xs font-semibold text-slate-700"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                    <span>Iniciando...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Ingresar al Sistema</span>
-                    <ArrowRight className="size-3.5 ml-1.5" />
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                Email
+              </label>
+              <div className="relative group">
+                <input
+                  id="emailOrUsername"
+                  type="text"
+                  value={emailOrUsername}
+                  onChange={(e) => setEmailOrUsername(e.target.value)}
+                  placeholder="tarrillo@gmail.com"
+                  autoComplete="username"
+                  disabled={loading}
+                  className="w-full h-11 px-4 text-sm font-normal text-slate-800 bg-[#eaf1fb] hover:bg-[#e4ecf7] focus:bg-white rounded-xl border border-transparent focus:border-sky-400 focus:ring-4 focus:ring-sky-100 transition-all outline-none placeholder:text-slate-400 disabled:opacity-60"
+                />
+              </div>
+            </div>
 
-        {/* Acceso Rápido Demo (1-Click) */}
-        {/* <div className="flex items-center justify-center gap-2 pt-0.5">
-          <span className="text-[11px] text-slate-400">Acceso demo:</span>
-          <button
-            type="button"
-            onClick={() => setDemo('admin', 'admin123')}
-            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white text-slate-600 hover:text-[#1a365d] border border-slate-200/90 shadow-2xs hover:border-[#319795]/50 transition-all cursor-pointer"
-          >
-            Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => setDemo('cajero', 'cajero123')}
-            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white text-slate-600 hover:text-[#1a365d] border border-slate-200/90 shadow-2xs hover:border-[#319795]/50 transition-all cursor-pointer"
-          >
-            Cajero
-          </button>
-        </div> */}
+            {/* Campo Contraseña */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold text-slate-700"
+              >
+                Contraseña
+              </label>
+              <div className="relative group">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  className="w-full h-11 pl-4 pr-11 text-sm font-normal text-slate-800 bg-[#eaf1fb] hover:bg-[#e4ecf7] focus:bg-white rounded-xl border border-transparent focus:border-sky-400 focus:ring-4 focus:ring-sky-100 transition-all outline-none placeholder:text-slate-400 disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Fila Recordarme Switch */}
+            <div className="flex items-center justify-between pt-1 pb-1">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={rememberMe}
+                  onClick={() => setRememberMe(!rememberMe)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 ${
+                    rememberMe ? 'bg-sky-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      rememberMe ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span
+                  onClick={() => setRememberMe(!rememberMe)}
+                  className="text-xs font-medium text-slate-600 cursor-pointer select-none hover:text-slate-800 transition-colors"
+                >
+                  Recordarme
+                </span>
+              </div>
+            </div>
+
+            {/* Botón Ingresar */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 bg-gradient-to-r from-[#00b0ff] to-[#007aff] hover:from-[#009ee6] hover:to-[#006ee6] text-white font-bold text-xs tracking-wider uppercase rounded-xl shadow-md shadow-sky-500/25 hover:shadow-lg hover:shadow-sky-500/35 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>INGRESANDO...</span>
+                </>
+              ) : (
+                <span>INGRESAR</span>
+              )}
+            </button>
+          </form>
+
+          {/* Accesos rápidos Demo para testing y desarrollo */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-2">
+            <span className="text-[11px] font-medium text-slate-400">
+              Cuentas demo para pruebas rápidas:
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleDemoFill('admin', 'admin123')}
+                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-slate-50 hover:bg-sky-50 hover:text-sky-600 rounded-lg border border-slate-200/80 transition-all cursor-pointer"
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('tarrillo@gmail.com', 'admin123')}
+                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-slate-50 hover:bg-sky-50 hover:text-sky-600 rounded-lg border border-slate-200/80 transition-all cursor-pointer"
+              >
+                Tarrillo (Admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('farmaceutico', 'farma123')}
+                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-slate-50 hover:bg-sky-50 hover:text-sky-600 rounded-lg border border-slate-200/80 transition-all cursor-pointer"
+              >
+                Farmacéutico
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('cajero', 'cajero123')}
+                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-slate-50 hover:bg-sky-50 hover:text-sky-600 rounded-lg border border-slate-200/80 transition-all cursor-pointer"
+              >
+                Cajero
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer sutil */}
+        <div className="text-center text-[11px] text-slate-400">
+          © {new Date().getFullYear()} Farmacia San Juan • Todos los derechos reservados
+        </div>
+      </div>
+
+      {/* ─── COLUMNA DERECHA: BANNER ARTÍSTICO DIAGONAL ─── */}
+      <div className="hidden lg:block lg:w-1/2 xl:w-7/12 relative min-h-screen overflow-hidden bg-white p-2 pl-0">
+        {/* Contenedor con corte diagonal (clip-path) idéntico a la referencia */}
+        <div
+          className="relative w-full h-full overflow-hidden rounded-bl-[48px] shadow-2xl"
+          style={{
+            clipPath: 'polygon(12% 0, 100% 0, 100% 100%, 0% 100%)',
+          }}
+        >
+          {/* Imagen de arte en alta resolución */}
+          <div className="relative w-full h-full transform scale-105 hover:scale-100 transition-transform duration-1000 ease-out">
+            <Image
+              src="/login-art.jpg"
+              alt="Arte decorativo fluido multicolor"
+              fill
+              priority
+              className="object-cover object-center rounded-bl-[48px]"
+              sizes="(min-width: 1024px) 60vw, 100vw"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -196,8 +280,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-[#319795]" />
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-[#00b0ff]" />
         </div>
       }
     >
