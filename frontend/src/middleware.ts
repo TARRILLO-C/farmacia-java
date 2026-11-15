@@ -7,21 +7,12 @@ export function middleware(request: NextRequest) {
     request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Si visita la raíz '/', redirigir a dashboard si tiene token, o a login si no
-  if (pathname === '/') {
-    if (token) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
-  // 2. Si ya tiene sesión activa y navega a /login, llevarlo al dashboard
+  // 1. Si ya tiene sesión activa y navega a /login, llevarlo al dashboard
   if (pathname === '/login' && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // 3. Proteger todas las rutas bajo /dashboard: si no hay token, redirigir a /login
+  // 2. Proteger todas las rutas bajo /dashboard: si no hay token, redirigir a /login
   if (pathname.startsWith('/dashboard')) {
     if (!token) {
       const loginUrl = new URL('/login', request.url);
@@ -30,6 +21,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 3. La raíz '/' es la página pública con el catálogo y sliders
   return NextResponse.next();
 }
 
