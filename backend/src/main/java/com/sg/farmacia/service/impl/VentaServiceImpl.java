@@ -48,6 +48,8 @@ public class VentaServiceImpl implements VentaService {
     private final LoteInventarioRepository loteRepository;
     private final FidelizacionCrmService fidelizacionService;
     private final ConsultaDocumentoService consultaDocumentoService;
+    private final com.sg.farmacia.repository.CajaRepository cajaRepository;
+    private final com.sg.farmacia.repository.MovimientoCajaRepository movimientoCajaRepository;
 
     @Override
     @Transactional
@@ -231,6 +233,38 @@ public class VentaServiceImpl implements VentaService {
             if (puntosGanados > 0) {
                 fidelizacionService.acumularPuntos(cliente.getId(), puntosGanados);
             }
+        }
+
+        // 10. Registrar venta en Caja activa si existe una abierta
+        try {
+            cajaRepository.findFirstByEstadoOrderByFechaAperturaDesc("ABIERTA").ifPresent(cajaActiva -> {
+                String metodoNom = metodoPago.getNombre() != null ? metodoPago.getNombre().toUpperCase() : "EFECTIVO";
+                if (metodoNom.contains("TARJETA")) {
+                    cajaActiva.setTotalVentasTarjeta((cajaActiva.getTotalVentasTarjeta() != null ? cajaActiva.getTotalVentasTarjeta() : 0.0) + total);
+                } else if (metodoNom.contains("YAPE") || metodoNom.contains("PLIN") || metodoNom.contains("DIGITAL")) {
+                    cajaActiva.setTotalVentasDigital((cajaActiva.getTotalVentasDigital() != null ? cajaActiva.getTotalVentasDigital() : 0.0) + total);
+                } else {
+                    cajaActiva.setTotalVentasEfectivo((cajaActiva.getTotalVentasEfectivo() != null ? cajaActiva.getTotalVentasEfectivo() : 0.0) + total);
+                    cajaActiva.setSaldoEsperadoEfectivo((cajaActiva.getSaldoEsperadoEfectivo() != null ? cajaActiva.getSaldoEsperadoEfectivo() : 0.0) + total);
+                }
+
+                com.sg.farmacia.model.MovimientoCaja mov = com.sg.farmacia.model.MovimientoCaja.builder()
+                        .caja(cajaActiva)
+                        .tipo("VENTA")
+                        .concepto("Venta POS - Recibo " + numeroRecibo)
+                        .monto(total)
+                        .metodoPago(metodoNom)
+                        .fecha(java.time.LocalDateTime.now())
+                        .usuario(usuario)
+                        .referenciaId(ventaGuardada.getId())
+                        .build();
+
+                movimientoCajaRepository.save(mov);
+                cajaRepository.save(cajaActiva);
+                log.info("Venta ID {} registrada en Caja activa ID {}", ventaGuardada.getId(), cajaActiva.getId());
+            });
+        } catch (Exception ex) {
+            log.warn("No se pudo vincular la venta a la caja activa: {}", ex.getMessage());
         }
 
         log.info("Venta procesada con éxito: Venta {}, Recibo {}, Total S/ {}",

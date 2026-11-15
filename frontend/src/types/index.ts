@@ -532,6 +532,71 @@ export interface CreateVentaDTO {
 }
 
 // ============================================================================
+// 9.1 CAJA Y CONTROL DE ARQUEOS (CASH REGISTER)
+// ============================================================================
+
+export type EstadoCaja = 'ABIERTA' | 'CERRADA';
+export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO' | 'VENTA';
+
+export interface MovimientoCaja {
+  id: number;
+  cajaId?: number;
+  tipo: TipoMovimientoCaja | string;
+  concepto: string;
+  monto: number;
+  metodoPago?: string;
+  fecha: string;
+  usuarioId?: number;
+  usuarioNombre?: string;
+  referenciaId?: number;
+}
+
+export interface Caja {
+  id: number;
+  fechaApertura: string;
+  fechaCierre?: string;
+  montoInicial: number;
+  montoCierre?: number;
+  totalVentasEfectivo: number;
+  totalVentasTarjeta: number;
+  totalVentasDigital: number;
+  totalVentasTotal: number;
+  totalIngresosManuales: number;
+  totalEgresosManuales: number;
+  saldoEsperadoEfectivo: number;
+  diferencia?: number;
+  estado: EstadoCaja | string;
+  usuarioAperturaId?: number;
+  usuarioAperturaNombre?: string;
+  usuarioCierreId?: number;
+  usuarioCierreNombre?: string;
+  observacionesApertura?: string;
+  observacionesCierre?: string;
+  movimientos?: MovimientoCaja[];
+}
+
+export interface AperturaCajaDTO {
+  montoInicial: number;
+  usuarioId?: number;
+  observaciones?: string;
+}
+
+export interface CierreCajaDTO {
+  montoCierre: number;
+  usuarioId?: number;
+  observaciones?: string;
+}
+
+export interface MovimientoCajaRequestDTO {
+  tipo: 'INGRESO' | 'EGRESO' | string;
+  concepto: string;
+  monto: number;
+  metodoPago?: string;
+  usuarioId?: number;
+  referenciaId?: number;
+}
+
+// ============================================================================
 // 10. RESPUESTAS GENÉRICAS DE LA API REST (Spring Boot)
 // ============================================================================
 

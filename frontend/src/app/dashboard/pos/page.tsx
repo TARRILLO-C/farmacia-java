@@ -20,6 +20,7 @@ import { Producto, CreateVentaDTO, CreateDetalleVentaDTO } from '@/types';
 import { getProductos } from '@/services/productoService';
 import { postVenta } from '@/services/ventaService';
 import { consultarDni, consultarRuc } from '@/services/consultaService';
+import { getCajaActiva, registrarMovimientoCaja } from '@/services/cajaService';
 import {
   Dialog,
   DialogContent,
@@ -339,6 +340,21 @@ export default function NuevaVentaPage() {
         await postVenta(ventaDTO);
       } catch {
         // Continuar en modo local si el backend no está disponible
+      }
+
+      // Vincular venta a la caja activa si se encuentra un turno abierto
+      try {
+        const cajaActiva = await getCajaActiva();
+        if (cajaActiva && cajaActiva.estado === 'ABIERTA') {
+          await registrarMovimientoCaja(cajaActiva.id, {
+            tipo: 'VENTA',
+            concepto: `Venta POS - ${backendComprobante} (${nombreCliente.trim() || 'Público General'})`,
+            monto: totalVenta,
+            metodoPago: backendMetodo,
+          });
+        }
+      } catch {
+        // No bloquear la venta si falla el arqueo
       }
 
       showToast(

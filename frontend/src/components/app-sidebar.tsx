@@ -20,6 +20,7 @@ import {
   LogOut,
   ChevronRight,
   Plus,
+  Wallet,
 } from 'lucide-react';
 
 import {
@@ -57,6 +58,7 @@ const gestionItems: SidebarItemDef[] = [
 
 const ventasItems: SidebarItemDef[] = [
   { title: 'Nueva Venta', href: '/dashboard/pos', icon: ShoppingCart, badge: 'POS' },
+  { title: 'Caja', href: '/dashboard/caja', icon: Wallet },
   { title: 'Historial', href: '/dashboard/ventas', icon: FileText },
   { title: 'Reportes', href: '/dashboard/reportes', icon: BarChart3 },
 ];

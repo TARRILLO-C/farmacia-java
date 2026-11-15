@@ -52,10 +52,11 @@ public class SecurityConfig {
                         // 2. Endpoints Públicos de Autenticación
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
-                        // 3. Ventas, Recibos y Clientes (ADMIN, FARMACEUTICO y CAJERO)
+                        // 3. Ventas, Recibos, Clientes y Caja (ADMIN, FARMACEUTICO y CAJERO)
                         .requestMatchers("/api/v1/ventas/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers("/api/v1/recibos/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers("/api/v1/clientes/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
+                        .requestMatchers("/api/v1/cajas/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers("/api/v1/fidelizacion/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
                         .requestMatchers(HttpMethod.GET, "/api/v1/consultas/**").hasAnyRole("ADMIN", "FARMACEUTICO", "CAJERO")
 
